@@ -4,6 +4,22 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - Warp, Claude Desktop agent mode and named Codex chats on the notch
+- **Developer label:** "go" (Phase 1 of the parity plan: the remaining passive sources)
+- **Agent label:** Ports of WarpAgentStore and ClaudeDesktopAgentSessionStore; Codex names from its logs
+- **Changes:**
+  - `WarpStore` (Kannu.Detection): Warp's agent mode from `warp.sqlite`'s `ai_queries`, read-only
+    with the WAL honoured — pending counts as running only while Warp runs and within the 6-minute
+    window, a failed exchange is the run's verdict, the prompt is the title. Windows locations are
+    best guesses (`%LOCALAPPDATA%\warp\Warp\data\warp.sqlite` and two others) until checked on a
+    real install.
+  - `ClaudeDesktopAgentStore`: Claude Desktop's agent mode ("Cowork") from each session's
+    `audit.jsonl` under `%APPDATA%\Claude\local-agent-mode-sessions`, including dispatch agents:
+    running, thinking, stopped, throttled, and the error verdict, cached against mtime+size.
+  - Codex hook cards are named, and given a project, from Codex's own session logs; Codex and
+    Claude log names and projects are now cached against mtime+size.
+  - 296 tests.
+
 ### 2026-10-01 - CI builds again on the newer Windows .NET SDK
 - **Developer label:** CI red on PR #1 (run 4): `SessionLogParser.cs(159,30): error CS1579`
 - **Agent label:** Fix a compiler-version-dependent overload binding; pin the C# version

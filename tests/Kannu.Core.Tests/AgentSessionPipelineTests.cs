@@ -82,4 +82,17 @@ public class AgentSessionPipelineTests
         Assert.Equal("parent", card.ConversationId);
         Assert.Equal(AgentLightState.AwaitingInput, card.DisplayState);
     }
+
+    [Fact]
+    public void ACodexCardIsNamedFromCodexsOwnLog()
+    {
+        var pipeline = new AgentSessionPipeline(new AgentTimings(), "/home/u");
+        var evidence = PassiveEvidence.None with
+        {
+            LogNames = new Dictionary<string, (string? Name, string? Project)> { ["codex|x"] = ("Fix the build", "kannu") },
+        };
+        var card = pipeline.Update([File("x", "executing", T0, "codex")], T0 + 1_000, evidence).Sessions.Single();
+        Assert.Equal("Fix the build", card.ChatName);
+        Assert.Equal("kannu", card.ProjectName);
+    }
 }

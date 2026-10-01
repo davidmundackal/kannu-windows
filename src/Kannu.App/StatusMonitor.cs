@@ -41,6 +41,8 @@ internal sealed class StatusMonitor : IDisposable
     private readonly AgentSessionPipeline _pipeline;
     private readonly SessionLogParser _logs;
     private readonly CursorPassive _cursor;
+    private readonly WarpStore _warp = new(WarpStore.DefaultCandidates());
+    private readonly ClaudeDesktopAgentStore _desktop = new(ClaudeDesktopAgentStore.DefaultRoot());
     private readonly FileSystemWatcher _watcher;
     private readonly DispatcherTimer _debounce;
     private readonly DispatcherTimer _tick;
@@ -143,22 +145,42 @@ internal sealed class StatusMonitor : IDisposable
                 var timings = _pipeline.Timings;
                 var hookCursorIds = _files.Where(f => f.Record.Provider == "cursor")
                     .Select(f => f.Key["cursor-".Length..]).ToHashSet();
-                var (claude, cursor) = await Task.Run(() =>
+                var (claude, cursor, names, others) = await Task.Run(() =>
                 {
                     var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     var claudeScan = ClaudePassiveScanner.Scan(_logs, timings, now, ProcessProbe.Of);
                     // Cursor's transcripts and database are read only while Cursor runs.
                     var cursorScan = CursorPassive.IsCursorRunning() ? _cursor.Scan(timings, now, hookCursorIds) : CursorScan.None;
-                    return (claudeScan, cursorScan);
+                    // Agents with no hooks at all: Warp's agent mode and Claude Desktop's agent mode.
+                    IReadOnlyList<AgentSession> others =
+                    [
+                        .. cursorScan.Sessions,
+                        .. _warp.Sessions(timings, now, WarpStore.IsWarpRunning()),
+                        .. _desktop.Sessions(timings, now),
+                    ];
+                    return (claudeScan, cursorScan, CodexNames(timings, now), others);
                 });
                 Publish(new PassiveEvidence(claude.Sessions, claude.DeadPidConversationIds, claude.LiveTails,
-                    cursor.PendingApprovalIds, cursor.Sessions, cursor.Analysis, cursor.SubagentParents, cursor.TitleSources));
+                    cursor.PendingApprovalIds, others, cursor.Analysis, cursor.SubagentParents, cursor.TitleSources, names));
             } while (_refreshAgain);
         }
         finally
         {
             _refreshing = false;
         }
+    }
+
+    /// <summary>Codex hook files carry no title: name them from Codex's own session logs.</summary>
+    private Dictionary<string, (string? Name, string? Project)> CodexNames(AgentTimings timings, long nowMs)
+    {
+        var names = new Dictionary<string, (string?, string?)>();
+        var nowUtc = DateTimeOffset.FromUnixTimeMilliseconds(nowMs).UtcDateTime;
+        foreach (var path in _logs.RecentSessionPaths(SessionLogProvider.Codex, timings.StaleMinutes, nowUtc))
+        {
+            names["codex|" + SessionLogParser.SessionId(path, SessionLogProvider.Codex)] =
+                (_logs.DisplayChatName(path, SessionLogProvider.Codex), _logs.ProjectName(path, SessionLogProvider.Codex));
+        }
+        return names;
     }
 
     private void Publish(PassiveEvidence evidence)

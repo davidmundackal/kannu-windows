@@ -48,6 +48,7 @@ public sealed partial class SessionLogParser(string home)
     private readonly Dictionary<string, (DateTime Mtime, long Size, ClaudeTailResult Result)> _tailCache = [];
     private readonly Dictionary<string, (DateTime Mtime, long Size, string? Name)> _nameCache = [];
     private readonly Dictionary<string, (DateTime Mtime, long Size, string? Title)> _titleCache = [];
+    private readonly Dictionary<string, (DateTime Mtime, long Size, string? Name)> _projectCache = [];
     private readonly Dictionary<string, string> _lastTailTitle = [];
     private readonly Dictionary<SessionLogProvider, (DateTime At, int MaxAge, IReadOnlyList<string> Paths)> _pathCache = [];
     private readonly Dictionary<string, string> _transcriptBySession = [];
@@ -247,10 +248,7 @@ public sealed partial class SessionLogParser(string home)
     public string? DisplayChatName(string path, SessionLogProvider provider)
     {
         if (!Stat(path, out var mtime, out var size)) return null;
-        if (provider == SessionLogProvider.Claude && _nameCache.TryGetValue(path, out var cached) && cached.Mtime == mtime && cached.Size == size)
-        {
-            return cached.Name;
-        }
+        if (_nameCache.TryGetValue(path, out var cached) && cached.Mtime == mtime && cached.Size == size) return cached.Name;
         if (ReadLeading(path) is not { } text) return null;
 
         string? name = null;
@@ -268,11 +266,8 @@ public sealed partial class SessionLogParser(string home)
                 }
             }
         }
-        if (provider == SessionLogProvider.Claude)
-        {
-            if (_nameCache.Count > 2 * MaxSessionsPerScan) _nameCache.Clear();
-            _nameCache[path] = (mtime, size, name);
-        }
+        if (_nameCache.Count > 4 * MaxSessionsPerScan) _nameCache.Clear();
+        _nameCache[path] = (mtime, size, name);
         return name;
     }
 
@@ -324,6 +319,17 @@ public sealed partial class SessionLogParser(string home)
     }
 
     private static string? CleanTitle(string? raw) => raw?.Trim() is { Length: > 0 } t ? Truncate(t, 72) : null;
+
+    /// <summary>The project folder name from the transcript's first records, cached against (mtime, size).</summary>
+    public string? ProjectName(string path, SessionLogProvider provider)
+    {
+        if (!Stat(path, out var mtime, out var size)) return null;
+        if (_projectCache.TryGetValue(path, out var cached) && cached.Mtime == mtime && cached.Size == size) return cached.Name;
+        var name = DisplayProjectName(path, provider);
+        if (_projectCache.Count > 4 * MaxSessionsPerScan) _projectCache.Clear();
+        _projectCache[path] = (mtime, size, name);
+        return name;
+    }
 
     /// <summary>The project folder name from the transcript's first records.</summary>
     public static string? DisplayProjectName(string path, SessionLogProvider provider)

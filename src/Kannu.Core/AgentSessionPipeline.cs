@@ -23,6 +23,7 @@ namespace Kannu.Core;
 /// <param name="CursorAnalysis">Cursor transcript tails, layered onto Cursor hook cards.</param>
 /// <param name="CursorSubagentParents">Cursor Task/subagent chats to the chat that launched them.</param>
 /// <param name="CursorTitleSources">Where Cursor chat titles come from, for naming Cursor hook cards.</param>
+/// <param name="LogNames">"provider|conversationId" to the name and project its own session log gives (Codex).</param>
 public sealed record PassiveEvidence(
     IReadOnlyList<AgentSession> PassiveClaude,
     IReadOnlySet<string> DeadPidConversationIds,
@@ -31,7 +32,8 @@ public sealed record PassiveEvidence(
     IReadOnlyList<AgentSession> OtherSessions,
     IReadOnlyDictionary<string, TranscriptAnalysis>? CursorAnalysis = null,
     IReadOnlyDictionary<string, string>? CursorSubagentParents = null,
-    ChatTitleSources? CursorTitleSources = null)
+    ChatTitleSources? CursorTitleSources = null,
+    IReadOnlyDictionary<string, (string? Name, string? Project)>? LogNames = null)
 {
     public static readonly PassiveEvidence None = new([], new HashSet<string>(), new Dictionary<string, ClaudeTailState>(), new HashSet<string>(), []);
 }
@@ -72,6 +74,18 @@ public sealed class AgentSessionPipeline(AgentTimings timings, string home)
             sessions = sessions.Select(s => s.Provider.Equals("cursor", StringComparison.OrdinalIgnoreCase)
                 ? s with { ChatName = CursorSessions.ResolveChatName(s.ConversationId, s.ChatName, sources) ?? s.ChatName }
                 : s).ToList();
+        }
+        if (evidence.LogNames is { Count: > 0 } names)
+        {
+            // A hook payload carries no title for most agents: name the card from the agent's own log.
+            sessions = sessions.Select(s =>
+                names.TryGetValue(s.Provider.ToLowerInvariant() + "|" + s.ConversationId, out var n)
+                    ? s with
+                    {
+                        ChatName = AgentStateMachine.HasReliableChatName(s.ChatName) ? s.ChatName : n.Name ?? s.ChatName,
+                        ProjectName = s.ProjectName ?? n.Project,
+                    }
+                    : s).ToList();
         }
         sessions = sessions.Where(s => !hook.FoldedSubagentIds.Contains(s.ConversationId)).ToList();
 
