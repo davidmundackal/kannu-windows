@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Test
+        run: dotnet test tests/Kannu.Core.Tests -c Release
+
+      - name: Publish (hook as Native AOT, app framework-dependent)
+        shell: pwsh
+        run: ./scripts/publish.ps1 -Runtime win-x64 -Output out/win-x64
+
+      - name: Smoke-test the published hook
+        shell: pwsh
+        run: |
+          $env:KANNU_STATUS_DIR = Join-Path $env:RUNNER_TEMP 'kannu-status'
+          '{"hook_event_name":"Stop","session_id":"ci"}' | ./out/win-x64/kannu-hook.exe claude
+          if ($LASTEXITCODE -ne 0) { throw "hook exited $LASTEXITCODE" }
+          $status = Get-Content (Join-Path $env:KANNU_STATUS_DIR 'claude-ci.json') | ConvertFrom-Json
+          if ($status.state -ne 'stopped') { throw "expected stopped, got $($status.state)" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kannu-win-x64
+          path: out/win-x64

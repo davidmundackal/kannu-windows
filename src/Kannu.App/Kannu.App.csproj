@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- Only for the tray icon (NotifyIcon); WPF has none of its own. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WPF and WinForms both define Application, MessageBox, ...: every using is explicit. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <!-- Lets the app compile (not run) on non-Windows machines and CI agents. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      WFAC010 asks WinForms apps to set DPI mode in code. This is a WPF app (WinForms is only the tray
+      icon), and WPF reads its per-monitor DPI awareness from the manifest.
+    -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <AssemblyName>Kannu</AssemblyName>
+    <RootNamespace>Kannu.App</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Kannu.Core\Kannu.Core.csproj" />
+  </ItemGroup>
+
+</Project>
