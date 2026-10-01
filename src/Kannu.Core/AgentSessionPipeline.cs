@@ -20,12 +20,18 @@ namespace Kannu.Core;
 /// <param name="LiveClaudeTails">Tail verdicts for Claude processes alive this scan.</param>
 /// <param name="CursorPendingApprovalIds">Cursor chats with an approval card open.</param>
 /// <param name="OtherSessions">Sessions from sources with no hook (Warp, Claude Desktop agent mode, Cursor transcripts).</param>
+/// <param name="CursorAnalysis">Cursor transcript tails, layered onto Cursor hook cards.</param>
+/// <param name="CursorSubagentParents">Cursor Task/subagent chats to the chat that launched them.</param>
+/// <param name="CursorTitleSources">Where Cursor chat titles come from, for naming Cursor hook cards.</param>
 public sealed record PassiveEvidence(
     IReadOnlyList<AgentSession> PassiveClaude,
     IReadOnlySet<string> DeadPidConversationIds,
     IReadOnlyDictionary<string, ClaudeTailState> LiveClaudeTails,
     IReadOnlySet<string> CursorPendingApprovalIds,
-    IReadOnlyList<AgentSession> OtherSessions)
+    IReadOnlyList<AgentSession> OtherSessions,
+    IReadOnlyDictionary<string, TranscriptAnalysis>? CursorAnalysis = null,
+    IReadOnlyDictionary<string, string>? CursorSubagentParents = null,
+    ChatTitleSources? CursorTitleSources = null)
 {
     public static readonly PassiveEvidence None = new([], new HashSet<string>(), new Dictionary<string, ClaudeTailState>(), new HashSet<string>(), []);
 }
@@ -56,7 +62,17 @@ public sealed class AgentSessionPipeline(AgentTimings timings, string home)
 
         IReadOnlyList<AgentSession> sessions = AgentStateMachine.ReconcileClaudeSessions(hook.Sessions, evidence.PassiveClaude,
             evidence.DeadPidConversationIds, Timings.CollapseMs, Timings.InactiveMs, nowMs);
-        sessions = [.. sessions, .. evidence.OtherSessions];
+        // Cursor: transcript context on the hook cards before the merge (a merged card can wear a
+        // Cursor identity over a Claude-won state, and must not then be repainted by Cursor evidence).
+        if (evidence.CursorAnalysis is { Count: > 0 } analysis) sessions = CursorSessions.EnrichHookSessions(sessions, analysis, nowMs);
+        sessions = CursorSessions.Merge(sessions, evidence.OtherSessions, nowMs);
+        if (evidence.CursorSubagentParents is { Count: > 0 } parents) sessions = CursorSessions.CollapseSubagents(sessions, parents, nowMs);
+        if (evidence.CursorTitleSources is { } sources)
+        {
+            sessions = sessions.Select(s => s.Provider.Equals("cursor", StringComparison.OrdinalIgnoreCase)
+                ? s with { ChatName = CursorSessions.ResolveChatName(s.ConversationId, s.ChatName, sources) ?? s.ChatName }
+                : s).ToList();
+        }
         sessions = sessions.Where(s => !hook.FoldedSubagentIds.Contains(s.ConversationId)).ToList();
 
         var (withRetained, retained) = AgentStateMachine.RetainEndedSessions(_previous, sessions, _retained, nowMs);

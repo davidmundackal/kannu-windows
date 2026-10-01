@@ -15,9 +15,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using Kannu.Core;
+using Kannu.Detection;
 
 namespace Kannu.App;
 
@@ -38,6 +40,7 @@ internal sealed class StatusMonitor : IDisposable
     private readonly Action<PipelineResult> _publish;
     private readonly AgentSessionPipeline _pipeline;
     private readonly SessionLogParser _logs;
+    private readonly CursorPassive _cursor;
     private readonly FileSystemWatcher _watcher;
     private readonly DispatcherTimer _debounce;
     private readonly DispatcherTimer _tick;
@@ -57,6 +60,7 @@ internal sealed class StatusMonitor : IDisposable
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         _pipeline = new AgentSessionPipeline(new AgentTimings(), home);
         _logs = new SessionLogParser(home);
+        _cursor = new CursorPassive(new CursorTranscripts(home), new CursorDatabase(CursorDatabase.DefaultUserDirectory()));
 
         _debounce = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Debounce };
         _debounce.Tick += (_, _) =>
@@ -137,10 +141,18 @@ internal sealed class StatusMonitor : IDisposable
             {
                 _refreshAgain = false;
                 var timings = _pipeline.Timings;
-                var passive = await Task.Run(() => ClaudePassiveScanner.Scan(_logs, timings,
-                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ProcessProbe.Of));
-                Publish(new PassiveEvidence(passive.Sessions, passive.DeadPidConversationIds, passive.LiveTails,
-                    new HashSet<string>(), []));
+                var hookCursorIds = _files.Where(f => f.Record.Provider == "cursor")
+                    .Select(f => f.Key["cursor-".Length..]).ToHashSet();
+                var (claude, cursor) = await Task.Run(() =>
+                {
+                    var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                    var claudeScan = ClaudePassiveScanner.Scan(_logs, timings, now, ProcessProbe.Of);
+                    // Cursor's transcripts and database are read only while Cursor runs.
+                    var cursorScan = CursorPassive.IsCursorRunning() ? _cursor.Scan(timings, now, hookCursorIds) : CursorScan.None;
+                    return (claudeScan, cursorScan);
+                });
+                Publish(new PassiveEvidence(claude.Sessions, claude.DeadPidConversationIds, claude.LiveTails,
+                    cursor.PendingApprovalIds, cursor.Sessions, cursor.Analysis, cursor.SubagentParents, cursor.TitleSources));
             } while (_refreshAgain);
         }
         finally

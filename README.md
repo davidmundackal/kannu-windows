@@ -43,6 +43,7 @@ Unticking the agent takes out exactly those entries again.
 | Path                   | What                                                                     |
 |------------------------|--------------------------------------------------------------------------|
 | `src/Kannu.Core`       | Platform-neutral logic: event mapping, race merge, age ladder, status files, settings transform |
+| `src/Kannu.Detection`  | Passive detection that reads other apps' SQLite databases (Cursor)        |
 | `src/Kannu.Hook`       | `kannu-hook.exe`, run by the agent on each event (Native AOT)            |
 | `src/Kannu.App`        | The WPF notch, tray icon and status watcher                              |
 | `tests/Kannu.Core.Tests` | xUnit tests for Core                                                   |

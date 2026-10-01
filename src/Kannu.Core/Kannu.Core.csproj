@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Kannu.Core.Tests" />
+    <InternalsVisibleTo Include="Kannu.Detection" />
   </ItemGroup>
 
 </Project>

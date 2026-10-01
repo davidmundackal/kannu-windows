@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Kannu.Core\Kannu.Core.csproj" />
+    <ProjectReference Include="..\Kannu.Detection\Kannu.Detection.csproj" />
   </ItemGroup>
 
 </Project>

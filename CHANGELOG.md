@@ -4,6 +4,25 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - Cursor chats show on the notch from its transcripts and database
+- **Developer label:** "go" (Phase 1 of the parity plan: Cursor passive detection)
+- **Agent label:** Port of CursorTranscriptParser, CursorComposerStore, CursorGlassAgentStore and the Cursor merge rules
+- **Changes:**
+  - `CursorTranscripts`: Cursor agent transcripts' tails (done, tool running, approval card pending,
+    prompt awaiting a reply, turn ended), subagent-to-parent mapping, project names from slugs, and
+    first-prompt titles, all cached against mtime+size.
+  - `CursorSessions`: the macOS rules for combining Cursor evidence — a composer/transcript snapshot to
+    a light; transcript context on Cursor hook cards that never overrides a hook's yellow and never
+    demotes a fresh hook; hook/transcript merge where a fresh hook's executing beats a lingering
+    transcript yellow; subagent chats rolled into their parent; chat titles vetted against tool names,
+    plan names and the chat's own prose.
+  - New `Kannu.Detection` library (keeps SQLite out of the hook): `CursorDatabase` reads Cursor's
+    `state.vscdb` read-only — composer headers and records, workspace databases for unresolved chats,
+    the plan registry and Glass agent titles. Any locked or missing database yields nothing.
+  - The app reads Cursor only while Cursor runs, and feeds its pending approvals into the yellow hold
+    (REGRESSIONS entry 12).
+  - 272 tests.
+
 ### 2026-10-01 - Claude Code sessions show on the notch even without hooks
 - **Developer label:** "go" (Phase 1 of the parity plan: passive Claude detection)
 - **Agent label:** Port of AgentSessionLogParser and buildClaudeSessions, with their macOS tests
