@@ -43,6 +43,10 @@ public partial class App : Application
         var notch = new NotchWindow(model);
         _tray = new TrayIcon(notch, statusDirectory, Shutdown);
         model.AggregateChanged += _tray.SetLight;
+        model.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(NotchViewModel.Summary)) _tray.SetSummary(model.Summary);
+        };
 
         _monitor = new StatusMonitor(statusDirectory, model.Update);
         notch.Show();

@@ -4,6 +4,21 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - The tray shows Kannu's eye, coloured by the most urgent agent
+- **Developer label:** "actually use the eye icon we use on the top bar"
+- **Agent label:** Kannu branding on Windows: eye tray icon, app icon, shared palette
+- **Changes:**
+  - Tray icon is the eye macOS Kannu shows in the menu bar. SF Symbols are licensed for Apple
+    platforms only, so it is drawn from Windows' own `View` glyph (Segoe Fluent Icons, falling back
+    to Segoe MDL2 Assets). White or black to match the taskbar theme when idle; green, yellow or red
+    for the most urgent session. Re-rendered on theme or display-scale changes.
+  - Tray tooltip carries the notch summary ("Kannu · 1 needs you · 2 working").
+  - `Kannu.exe` carries the Kannu app icon: `assets/Kannu.ico` (16–256 px) built by
+    `scripts/make-icons.py` from macOS Kannu's AppIcon (JPEG data, re-encoded as PNG frames).
+  - Traffic-light colours now match macOS Kannu (`AgentTrafficLightColors.swift`), shared by the
+    notch and the tray via `Brand.cs`.
+  - The collapsed notch shows the eye while no agent is running.
+
 ### 2026-10-01 - A notch for Windows that shows Claude Code's traffic light
 - **Developer label:** "we want something that gives a notch base for us to work on windows, so that can create a kannu for windows"
 - **Agent label:** Windows notch base: status core, Claude Code hook, WPF notch and tray

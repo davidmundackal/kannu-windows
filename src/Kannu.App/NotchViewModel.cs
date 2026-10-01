@@ -100,10 +100,10 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
 /// <summary>One session row. Immutable: a status change rebuilds the row.</summary>
 internal sealed class SessionRow
 {
-    private static readonly Brush Green = Frozen(0x34, 0xC7, 0x59);
-    private static readonly Brush Yellow = Frozen(0xFF, 0xCC, 0x00);
-    private static readonly Brush Red = Frozen(0xFF, 0x3B, 0x30);
-    private static readonly Brush Dim = Frozen(0x6E, 0x6E, 0x73);
+    private static readonly Brush Green = KannuColors.Brush(KannuColors.Green);
+    private static readonly Brush Yellow = KannuColors.Brush(KannuColors.Yellow);
+    private static readonly Brush Red = KannuColors.Brush(KannuColors.Red);
+    private static readonly Brush Dim = KannuColors.Brush(KannuColors.Dim);
 
     public SessionRow(AgentSession session)
     {
@@ -147,10 +147,4 @@ internal sealed class SessionRow
         _ => $"{ageMs / 3_600_000}h",
     };
 
-    private static Brush Frozen(byte r, byte g, byte b)
-    {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
-    }
 }

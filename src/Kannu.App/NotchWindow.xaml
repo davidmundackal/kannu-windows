@@ -43,6 +43,19 @@
         <Grid>
             <!-- Collapsed row; stays as the header when expanded. -->
             <StackPanel Height="32" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
+                <!-- Kannu's eye while nothing is running, as in the macOS menu bar. -->
+                <TextBlock VerticalAlignment="Center" Text="&#xE890;" FontSize="14" Foreground="#D9FFFFFF"
+                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <ItemsControl VerticalAlignment="Center" Focusable="False"
                               ItemsSource="{Binding Dots}" ItemTemplate="{StaticResource DotTemplate}">
                     <ItemsControl.ItemsPanel>

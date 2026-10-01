@@ -16,6 +16,7 @@
       icon), and WPF reads its per-monitor DPI awareness from the manifest.
     -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <ApplicationIcon>..\..\assets\Kannu.ico</ApplicationIcon>
     <AssemblyName>Kannu</AssemblyName>
     <RootNamespace>Kannu.App</RootNamespace>
   </PropertyGroup>
