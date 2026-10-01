@@ -114,6 +114,68 @@ public sealed partial class AgentHookInstaller(AgentHookLayout layout, string ho
         return files.Configs.Any(config => HasEntries(config, required));
     }
 
+    /// <summary>
+    /// After Kannu is installed or updated: rewrites every agent that carries any Kannu entry, so a
+    /// layout change in the new version (an added event, a new command shape) reaches agents set up by
+    /// the old one. Agents never set up are left alone; one whose settings cannot be safely edited is
+    /// skipped and keeps its old entries.
+    /// </summary>
+    /// <returns>The agents rewritten.</returns>
+    public IReadOnlyList<AgentProvider> Reinstall()
+    {
+        var rewritten = new List<AgentProvider>();
+        foreach (var provider in Enum.GetValues<AgentProvider>())
+        {
+            if (!HasAnyEntry(provider)) continue;
+            try
+            {
+                Install(provider);
+                rewritten.Add(provider);
+            }
+            catch (Exception e) when (e is HookInstallException or IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+        return rewritten;
+    }
+
+    /// <summary>Before Kannu is uninstalled: removes its entries from every agent, best effort.</summary>
+    public void UninstallAll()
+    {
+        foreach (var provider in Enum.GetValues<AgentProvider>())
+        {
+            try
+            {
+                Uninstall(provider);
+            }
+            catch (Exception e) when (e is HookInstallException or IOException or UnauthorizedAccessException)
+            {
+            }
+        }
+    }
+
+    /// <summary>Any Kannu entry at all, even one an older version wrote with fewer events.</summary>
+    private bool HasAnyEntry(AgentProvider provider)
+    {
+        var files = Layout.For(provider);
+        if (provider == AgentProvider.Opencode) return ReadOrEmpty(files.Configs[0].Path).Contains(OpencodePluginSource.MarkerPrefix);
+        return files.Configs.Any(config =>
+        {
+            if (config.Shape == AgentHookLayout.Shape.OwnFile) return File.Exists(config.Path);
+            JsonObject root;
+            try
+            {
+                root = ReadForMerge(config.Path);
+            }
+            catch (HookInstallException)
+            {
+                return false;
+            }
+            return root["hooks"] is JsonObject hooks && hooks.Any(pair => pair.Value is JsonArray list && list.Any(item =>
+                config.Shape == AgentHookLayout.Shape.FlatEntries ? IsOurs(item) : GroupIsOurs(item)));
+        });
+    }
+
     // ---- JSON settings files ----
 
     private void Merge(AgentHookLayout.ConfigFile config, AgentProvider provider, bool required)

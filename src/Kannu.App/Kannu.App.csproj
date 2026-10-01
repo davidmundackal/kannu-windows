@@ -19,11 +19,17 @@
     <ApplicationIcon>..\..\assets\Kannu.ico</ApplicationIcon>
     <AssemblyName>Kannu</AssemblyName>
     <RootNamespace>Kannu.App</RootNamespace>
+    <!-- Program.Main, not the one WPF generates: Velopack's install, update and uninstall hooks run first. -->
+    <StartupObject>Kannu.App.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Kannu.Core\Kannu.Core.csproj" />
     <ProjectReference Include="..\Kannu.Detection\Kannu.Detection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
 </Project>

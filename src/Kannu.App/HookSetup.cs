@@ -70,6 +70,40 @@ internal static class HookSetup
         return $"{provider.DisplayName()} hooks removed.";
     }
 
+    /// <summary>
+    /// Velopack runs this in the new version right after an install or update. Agents set up by the
+    /// previous version are rewritten and the hook copied again, so they run this version's hook.
+    /// </summary>
+    public static void AfterInstallOrUpdate()
+    {
+        // Never fail an install or update over hooks: the tray can set them up again.
+        try
+        {
+            var rewritten = Installer.Reinstall();
+            if ((rewritten.Count > 0 || File.Exists(Installer.HookExePath)) && File.Exists(BundledHookPath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Installer.HookExePath)!);
+                CopyWithRetry(BundledHookPath, Installer.HookExePath);
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    /// <summary>Velopack runs this before uninstalling: every agent's settings are left without Kannu.</summary>
+    public static void BeforeUninstall()
+    {
+        Installer.UninstallAll();
+        try
+        {
+            Directory.Delete(Path.GetDirectoryName(Installer.HookExePath)!, recursive: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
     /// <summary>A hook running at this moment holds its executable open for a few milliseconds.</summary>
     private static void CopyWithRetry(string from, string to)
     {

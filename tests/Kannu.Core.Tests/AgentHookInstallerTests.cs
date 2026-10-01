@@ -208,4 +208,32 @@ public sealed class AgentHookInstallerTests : IDisposable
         File.Delete(_installer.HookExePath);
         Assert.False(_installer.IsInstalled(AgentProvider.Claude));
     }
+    [Fact]
+    public void ReinstallRewritesOnlyAgentsThatHadKannu()
+    {
+        _installer.Install(AgentProvider.Claude);
+        _installer.Install(AgentProvider.Opencode);
+        Assert.Equal([AgentProvider.Claude, AgentProvider.Opencode], _installer.Reinstall().OrderBy(p => p));
+        Assert.False(File.Exists(_installer.Layout.For(AgentProvider.Cursor).Configs[0].Path));
+    }
+
+    [Fact]
+    public void ReinstallCompletesAnEntrySetAnOlderVersionWrote()
+    {
+        var settings = _installer.Layout.For(AgentProvider.Claude).Configs[0].Path;
+        var command = _installer.Command(AgentProvider.Claude, AgentHookLayout.ClaudeEvents[0]);
+        Write(settings, "{\"hooks\":{\"Stop\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"" + command.Replace("\"", "\\\"") + "\"}]}]}}");
+        Assert.False(_installer.IsInstalled(AgentProvider.Claude));
+        Assert.Equal([AgentProvider.Claude], _installer.Reinstall());
+        Assert.True(_installer.IsInstalled(AgentProvider.Claude));
+    }
+
+    [Fact]
+    public void UninstallAllRemovesEveryAgentAndSkipsABrokenFile()
+    {
+        foreach (var provider in Enum.GetValues<AgentProvider>()) _installer.Install(provider);
+        Write(_installer.Layout.For(AgentProvider.Gemini).Configs[0].Path, "{ broken");
+        _installer.UninstallAll();
+        Assert.All(Enum.GetValues<AgentProvider>(), p => Assert.False(_installer.IsInstalled(p)));
+    }
 }

@@ -24,6 +24,7 @@ public partial class App : Application
     private Mutex? _singleInstance;
     private StatusMonitor? _monitor;
     private TrayIcon? _tray;
+    private UpdateService? _updates;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -41,7 +42,8 @@ public partial class App : Application
 
         var model = new NotchViewModel();
         var notch = new NotchWindow(model);
-        _tray = new TrayIcon(notch, statusDirectory, Shutdown);
+        _updates = new UpdateService();
+        _tray = new TrayIcon(notch, statusDirectory, _updates, Shutdown);
         model.AggregateChanged += _tray.SetLight;
         model.PropertyChanged += (_, args) =>
         {
@@ -51,11 +53,15 @@ public partial class App : Application
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         notch.Show();
         _monitor.Start();
+        // macOS starts its updater only after the Terms of Use are accepted; once Kannu for Windows has
+        // that gate, this line moves behind it.
+        _updates.Start();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _monitor?.Dispose();
+        _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();
         base.OnExit(e);

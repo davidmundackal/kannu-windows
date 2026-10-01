@@ -35,7 +35,24 @@ jobs:
           $status = Get-Content (Join-Path $env:KANNU_STATUS_DIR 'claude-ci.json') | ConvertFrom-Json
           if ($status.state -ne 'stopped') { throw "expected stopped, got $($status.state)" }
 
+      # The installer is built on every PR too, so a packaging break fails here rather than on a tag.
+      - name: Build the installer (unsigned)
+        shell: pwsh
+        run: |
+          $velopack = ([xml](Get-Content src/Kannu.App/Kannu.App.csproj)).Project.ItemGroup.PackageReference |
+            Where-Object { $_.Include -eq 'Velopack' } | ForEach-Object { $_.Version }
+          dotnet tool install -g vpk --version $velopack
+          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+          ./scripts/build-installer.ps1 -SkipPublish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path Releases/Kannu-win-Setup.exe)) { throw 'Kannu-win-Setup.exe was not built.' }
+
       - uses: actions/upload-artifact@v4
         with:
           name: kannu-win-x64
           path: out/win-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kannu-installer
+          path: Releases/Kannu-win-Setup.exe

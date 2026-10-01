@@ -17,6 +17,26 @@ same status files ([docs/STATUS_CONTRACT.md](docs/STATUS_CONTRACT.md)).
 Early. Windows 10 and 11. Hooks for **Claude Code, Cursor, VS Code Copilot and Copilot CLI, Codex CLI,
 Antigravity, Gemini CLI, Qwen Code and opencode**.
 
+## Install
+
+1. Download **`Kannu-win-Setup.exe`** from the latest
+   [release](https://github.com/davidmundackal/kannu-windows/releases/latest).
+2. Run it. Releases are not code-signed yet, so the first time Windows SmartScreen says *"Windows
+   protected your PC"*: click **More info**, then **Run anyway**.
+3. Kannu installs for your user only (no administrator prompt) into `%LOCALAPPDATA%\Kannu`, adds a
+   Start-menu entry, installs the .NET 8 Desktop Runtime if it is missing, and starts. The eye appears
+   in the notification area and the notch at the top of your screen.
+4. Right-click the eye, open **Agent hooks** and tick each agent you use.
+
+Updates install themselves: Kannu checks its GitHub Releases at launch and once a day, downloads in the
+background and applies the update the next time it starts (or right away from **Restart to Update** in
+the tray menu). **Check for Updates…** in the tray menu checks now.
+
+To uninstall, use **Settings › Apps › Installed apps › Kannu**. Uninstalling also removes Kannu's
+entries from every agent's settings.
+
+No installer wanted? `Kannu-win-Portable.zip` on the same release page runs from any folder.
+
 ## Build and run
 
 Requirements: Windows 10/11, the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
@@ -24,7 +44,11 @@ Requirements: Windows 10/11, the [.NET 8 SDK](https://dotnet.microsoft.com/downl
 ```powershell
 ./scripts/publish.ps1          # builds Kannu.exe + kannu-hook.exe into out/win-x64
 ./out/win-x64/Kannu.exe
+./scripts/build-installer.ps1  # the installer, unsigned, into Releases/ (needs vpk; see the script)
 ```
+
+A build run from `out/` does not update itself; only an installed copy does. Releases are cut from tags:
+[scripts/RELEASE.md](scripts/RELEASE.md).
 
 Then right-click the tray eye, open **Agent hooks** and tick each agent you use. New sessions show up
 on the notch.

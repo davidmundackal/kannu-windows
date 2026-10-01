@@ -4,6 +4,25 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - Installer, releases and automatic updates
+- **Developer label:** "how does someone install it, can we do verything like libin has setup for kannu mac"
+- **Agent label:** Velopack installer and updater, the Windows counterpart of macOS Kannu's DMG + Sparkle release pipeline
+- **Changes:**
+  - `Program.Main` runs Velopack first. After an install or update, every agent that carries a Kannu
+    hook is rewritten and `kannu-hook.exe` is copied again (`AgentHookInstaller.Reinstall`); before
+    an uninstall, Kannu's entries are removed from every agent (`UninstallAll`).
+  - `UpdateService`: checks GitHub Releases at launch and daily, downloads in the background and
+    applies on the next start; tray menu shows the version and codename, **Check for Updates…** and
+    **Restart to Update**. Off in Debug builds and builds Velopack did not install; a test build
+    follows pre-releases only.
+  - `ReleaseInfo` (version from `Directory.Build.props`, codename Heimdall, repository URL).
+  - `.github/workflows/release.yml`: a `v*` tag tests, builds the installer, signs it only when the
+    `WINDOWS_SIGN_*` secrets exist, and publishes the GitHub Release with delta packages; it refuses a
+    tag that disagrees with `<Version>`. CI builds the installer on every PR.
+  - `scripts/build-installer.ps1`, `scripts/RELEASE.md`, `publish.ps1 -Version`, README **Install**,
+    `docs/release-notes/0.1.0.md`.
+  - 317 tests.
+
 ### 2026-10-01 - Agent cards show the agent's icon, run time, tools and tokens
 - **Developer label:** "go" (Phase 1 of the parity plan: notch agent UI parity)
 - **Agent label:** Port of AgentProviderIconView's sources and ClaudeTurnTokens; two-line cards

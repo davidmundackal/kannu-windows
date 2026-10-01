@@ -38,7 +38,7 @@ internal sealed class TrayIcon : IDisposable
     private readonly List<IntPtr> _iconHandles = [];
     private TrafficLight _light = TrafficLight.Inactive;
 
-    public TrayIcon(NotchWindow notch, string statusDirectory, Action quit)
+    public TrayIcon(NotchWindow notch, string statusDirectory, UpdateService updates, Action quit)
     {
         _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         BuildIcons();
@@ -75,9 +75,26 @@ internal sealed class TrayIcon : IDisposable
         var openFolder = new ToolStripMenuItem("Open status folder", null, (_, _) =>
             Process.Start(new ProcessStartInfo("explorer.exe", $"\"{statusDirectory}\"") { UseShellExecute = true }));
 
+        var version = new ToolStripMenuItem($"Kannu {ReleaseInfo.Version} ({ReleaseInfo.Codename})") { Enabled = false };
+        // The lambdas run after the constructor has assigned _icon.
+        var checkForUpdates = new ToolStripMenuItem("Check for Updates…", null, async (_, _) =>
+            _icon!.ShowBalloonTip(4000, "Kannu", await updates.CheckAsync(), ToolTipIcon.Info)) { Available = updates.IsEnabled };
+        var restartToUpdate = new ToolStripMenuItem("Restart to Update", null, (_, _) => updates.RestartToUpdate()) { Available = false };
+        updates.UpdateReady += ready =>
+        {
+            restartToUpdate.Text = $"Restart to Update to {ready}";
+            restartToUpdate.Available = true;
+            checkForUpdates.Available = false;
+            _icon!.ShowBalloonTip(6000, "Kannu", $"Kannu {ready} is ready. It installs the next time Kannu starts.", ToolTipIcon.Info);
+        };
+
         var menu = new ContextMenuStrip();
         menu.Items.AddRange(new ToolStripItem[]
         {
+            version,
+            checkForUpdates,
+            restartToUpdate,
+            new ToolStripSeparator(),
             show,
             new ToolStripSeparator(),
             agents,

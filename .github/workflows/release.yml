@@ -1,0 +1,99 @@
+name: Release
+
+# Push a tag to publish a release: vX.Y.Z for a release, vX.Y.Z-test.N for a test (a GitHub
+# pre-release that only test builds update to). See scripts/RELEASE.md.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  REPO_URL: https://github.com/${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read the version, and refuse a tag that disagrees with it
+        id: release
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^v', ''
+          $props = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          if (($version -replace '-.*$', '') -ne $props) {
+            throw "Tag ${{ github.ref_name }} does not match <Version>$props</Version> in Directory.Build.props."
+          }
+          $codename = [regex]::Match((Get-Content -Raw src/Kannu.Core/ReleaseInfo.cs), 'Codename = "([^"]+)"').Groups[1].Value
+          $velopack = ([xml](Get-Content src/Kannu.App/Kannu.App.csproj)).Project.ItemGroup.PackageReference |
+            Where-Object { $_.Include -eq 'Velopack' } | ForEach-Object { $_.Version }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "codename=$codename" >> $env:GITHUB_OUTPUT
+          "velopack=$velopack" >> $env:GITHUB_OUTPUT
+          "pre=$(if ($version.Contains('-')) { '--pre' } else { '' })" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        run: dotnet test tests/Kannu.Core.Tests -c Release
+
+      - name: Install vpk (the Velopack CLI, same version as the app's Velopack package)
+        shell: pwsh
+        run: |
+          dotnet tool install -g vpk --version ${{ steps.release.outputs.velopack }}
+          "$env:USERPROFILE\.dotnet\tools" >> $env:GITHUB_PATH
+
+      # The previous release lets vpk build a delta package, so updates download only what changed.
+      - name: Download the previous release
+        shell: pwsh
+        run: |
+          vpk download github --repoUrl $env:REPO_URL --token ${{ secrets.GITHUB_TOKEN }} --outputDir Releases ${{ steps.release.outputs.pre }}
+          if ($LASTEXITCODE -ne 0) { Write-Warning 'No previous release downloaded; this release has no delta package.' }
+          exit 0
+
+      # Signs only when the WINDOWS_SIGN_* secrets exist; otherwise the release is unsigned and
+      # SmartScreen warns on first run (README explains "More info > Run anyway").
+      - name: Build the installer
+        shell: pwsh
+        env:
+          WINDOWS_SIGN_CERT_BASE64: ${{ secrets.WINDOWS_SIGN_CERT_BASE64 }}
+          WINDOWS_SIGN_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGN_CERT_PASSWORD }}
+        run: |
+          $sign = ''
+          if ($env:WINDOWS_SIGN_CERT_BASE64) {
+            $pfx = Join-Path $env:RUNNER_TEMP 'kannu-sign.pfx'
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_SIGN_CERT_BASE64))
+            $sign = "/f $pfx /p $env:WINDOWS_SIGN_CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256"
+          } else {
+            Write-Warning 'WINDOWS_SIGN_CERT_BASE64 is not set: this release is unsigned.'
+          }
+          ./scripts/build-installer.ps1 -Version ${{ steps.release.outputs.version }} -SignParams $sign
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:WINDOWS_SIGN_CERT_BASE64) { Remove-Item $pfx }
+
+      - name: Smoke-test the published hook
+        shell: pwsh
+        run: |
+          $env:KANNU_STATUS_DIR = Join-Path $env:RUNNER_TEMP 'kannu-status'
+          $line = '{"session_id":"release"}' | ./out/win-x64/kannu-hook.exe stopped claude Stop
+          if ($LASTEXITCODE -ne 0) { throw "hook exited $LASTEXITCODE" }
+          if ($line -ne '{"permission":"allow","continue":true}') { throw "unexpected stdout: $line" }
+
+      # The release body is docs/release-notes/<version>.md, carried in the package by vpk pack.
+      - name: Publish the GitHub Release
+        shell: pwsh
+        run: |
+          vpk upload github --repoUrl $env:REPO_URL --token ${{ secrets.GITHUB_TOKEN }} --outputDir Releases `
+            --publish --tag ${{ github.ref_name }} `
+            --releaseName "Kannu for Windows ${{ steps.release.outputs.version }} — ${{ steps.release.outputs.codename }}" `
+            ${{ steps.release.outputs.pre }}
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

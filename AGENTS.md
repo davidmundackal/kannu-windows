@@ -48,7 +48,14 @@ simplest native API over a framework or dependency.
 ```powershell
 dotnet test tests/Kannu.Core.Tests
 ./scripts/publish.ps1            # Kannu.exe + kannu-hook.exe into out/win-x64
+./scripts/build-installer.ps1    # Velopack installer into Releases/ (needs vpk)
 ```
+
+Releases: `scripts/RELEASE.md`. The version lives only in `Directory.Build.props`; the release workflow
+refuses a tag that disagrees, and a test requires `docs/release-notes/<version>.md`. Velopack's install,
+update and uninstall hooks run in `Program.Main` before any window: keep them fast and never let them
+throw. Branches: day-to-day work lands on `development`, `main` is the release branch, PRs target
+`development`.
 
 Core and the hook build and test on any OS. The app compiles anywhere (`EnableWindowsTargeting`) but
 runs only on Windows. Never claim UI behaviour was verified unless it was run on Windows.
