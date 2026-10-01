@@ -4,6 +4,20 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - A map of every macOS Kannu feature and where it stands on Windows
+- **Developer label:** "plan and create a map for every feature I specifically added for mac version and if we have done it in windows, what do we genuinely avoided, what we can do, what needs maybe a decision from me, what cant be done"
+- **Agent label:** Feature-parity map from a full inventory of the macOS source, with open decisions and a re-ordered roadmap
+- **Changes:**
+  - `docs/PARITY.md`: about 110 macOS features (agent monitoring, agent extras, usage, Agent
+    Security, app shell, inherited utilities), each marked Done / Partial / Doable / Decide / Avoid /
+    Can't with its Windows route or the reason, and whether it is Kannu's own or inherited from Atoll.
+  - Nine open decisions (WSL agents, exact terminal tab, toasts, usage refresh, ADR on Windows,
+    all-desktops pinning, default visibility, Windows terms, inherited-utility scope) with
+    recommendations.
+  - Roadmap re-ordered so Kannu's own features (caffeinate, click-through, usage, Agent Security,
+    push, skins) come before inherited utilities.
+  - `AGENTS.md` points at the map and asks PRs to keep it current.
+
 ### 2026-10-01 - Installer, releases and automatic updates
 - **Developer label:** "how does someone install it, can we do verything like libin has setup for kannu mac"
 - **Agent label:** Velopack installer and updater, the Windows counterpart of macOS Kannu's DMG + Sparkle release pipeline

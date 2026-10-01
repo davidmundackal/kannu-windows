@@ -57,6 +57,9 @@ update and uninstall hooks run in `Program.Main` before any window: keep them fa
 throw. Branches: day-to-day work lands on `development`, `main` is the release branch, PRs target
 `development`.
 
+What is ported from macOS Kannu, what is not, and why: `docs/PARITY.md`. A PR that ships, drops or
+reroutes a feature updates its row in the same commit.
+
 Core and the hook build and test on any OS. The app compiles anywhere (`EnableWindowsTargeting`) but
 runs only on Windows. Never claim UI behaviour was verified unless it was run on Windows.
 
