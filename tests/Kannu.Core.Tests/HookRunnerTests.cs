@@ -211,9 +211,9 @@ public sealed class HookRunnerTests : IDisposable
         File.WriteAllText(Path.Combine(Dir, ".kannu-x.json"), """{"state":"stopped","ts":1}""");
         File.WriteAllText(Path.Combine(Dir, "bad.json"), "{{{");
         File.WriteAllText(Path.Combine(Dir, "huge.json"), new string(' ', 70_000));
-        Assert.Equal(["claude-good"], StatusStore.ReadAll(Dir).Select(r => r.Key));
+        Assert.Equal(["claude-good"], HookSessionReader.ReadFiles(Dir).Select(r => r.Key));
     }
 
     [Fact]
-    public void ReadAllOnAMissingDirectoryIsEmpty() => Assert.Empty(StatusStore.ReadAll(Dir));
+    public void ReadAllOnAMissingDirectoryIsEmpty() => Assert.Empty(HookSessionReader.ReadFiles(Dir));
 }

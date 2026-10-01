@@ -58,9 +58,15 @@ Status files are untrusted: any process running as the user can write one. Reade
 (64 KB), tolerate any malformed content, and open files with read/write/delete sharing so they never
 block a hook's rename.
 
-| Raw state                    | Light  | Until                                   |
-|------------------------------|--------|-----------------------------------------|
-| `thinking`, `executing`      | Green  | 6 min with no event, then dim           |
-| `awaiting_input`             | Yellow | 5 min, then dim                         |
-| `stopped`, `quota_exceeded`  | Red    | 10 min, then hidden                     |
-| `idle`, stale, unknown       | Dim    | 10 min after `ts`, then hidden          |
+The reader is a port of the macOS monitor's rules (`AgentStateMachine`, `HookSessionReader`), with
+the macOS defaults: stale cap 30 min, red 5 s, dim 5 s.
+
+| Raw state                    | Light  | Until                                                        |
+|------------------------------|--------|--------------------------------------------------------------|
+| `thinking`, `executing`      | Green  | 6 min with no event (never shorter: a tool call writes nothing) |
+| `awaiting_input`             | Yellow | 5 min, or as long as evidence says the prompt is open; hook-only agents hold until the stale cap |
+| `stopped`, `quota_exceeded`  | Red    | 5 s red, 5 s dim; a chat that went red stays listed dim for 69 s |
+| `idle`                       | Dim    | until the stale cap                                          |
+
+A file older than the stale cap is deleted (if unchanged since it was read, under the lock) unless a
+live Claude process proves it is still waiting or working.

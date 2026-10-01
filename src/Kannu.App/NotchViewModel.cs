@@ -46,15 +46,17 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>The session list was rebuilt (the expanded notch may need a new height).</summary>
     public event Action? SessionsChanged;
 
-    public void Update(IReadOnlyList<AgentSession> sessions)
+    public void Update(PipelineResult result)
     {
+        var sessions = result.Sessions;
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var countChanged = sessions.Count != Sessions.Count;
 
         Sessions.Clear();
         Dots.Clear();
         foreach (var session in sessions)
         {
-            var row = new SessionRow(session);
+            var row = new SessionRow(session, nowMs);
             Sessions.Add(row);
             if (Dots.Count < MaxDots) Dots.Add(row);
         }
@@ -67,8 +69,7 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         }
         if (countChanged) PropertyChanged?.Invoke(this, new(nameof(HasSessions)));
 
-        // Sessions arrive most urgent first, so the first one is the aggregate.
-        var aggregate = sessions.Count > 0 ? sessions[0].Light : TrafficLight.Inactive;
+        var aggregate = result.Light.Light();
         if (aggregate != Aggregate)
         {
             Aggregate = aggregate;
@@ -82,9 +83,9 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     {
         if (sessions.Count == 0) return Text.NoAgents;
         var parts = new List<string>(3);
-        var needs = sessions.Count(s => s.Light == TrafficLight.Yellow);
-        var working = sessions.Count(s => s.Light == TrafficLight.Green);
-        var done = sessions.Count(s => s.Light == TrafficLight.Red);
+        var needs = sessions.Count(s => s.DisplayState == AgentLightState.AwaitingInput);
+        var working = sessions.Count(s => s.DisplayState is AgentLightState.Executing or AgentLightState.Thinking);
+        var done = sessions.Count(s => s.DisplayState == AgentLightState.Stopped);
         if (needs > 0) parts.Add($"{needs} needs you");
         if (working > 0) parts.Add($"{working} working");
         if (done > 0) parts.Add($"{done} done");
@@ -97,7 +98,7 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     }
 }
 
-/// <summary>One session row. Immutable: a status change rebuilds the row.</summary>
+/// <summary>One card. Immutable: a status change rebuilds the row.</summary>
 internal sealed class SessionRow
 {
     private static readonly Brush Green = KannuColors.Brush(KannuColors.Green);
@@ -105,46 +106,43 @@ internal sealed class SessionRow
     private static readonly Brush Red = KannuColors.Brush(KannuColors.Red);
     private static readonly Brush Dim = KannuColors.Brush(KannuColors.Dim);
 
-    public SessionRow(AgentSession session)
+    public SessionRow(AgentSession session, long nowMs)
     {
-        Title = session.Title;
-        Brush = session.Light switch
+        // The chat's title when it has a real one, else its project: never "Untitled chat" when
+        // something better is known.
+        Title = AgentStateMachine.HasReliableChatName(session.ChatName) ? session.DisplayChatName
+            : session.ProjectName ?? session.DisplayChatName;
+        Brush = session.DisplayState.Light() switch
         {
             TrafficLight.Green => Green,
             TrafficLight.Yellow => Yellow,
             TrafficLight.Red => Red,
             _ => Dim,
         };
-        Detail = $"{ProviderName(session.Record.Provider)} · {StateText(session)} · {AgeText(session.AgeMs)}";
+        var parts = new List<string> { session.ProviderLabel, StateText(session) };
+        switch (TurnDisplay.For(session.Turn, session.ExecutionStartedAtMs, session.DisplayState, session.HasActiveRawState, session.UpdatedAtMs))
+        {
+            case TurnDisplay.Live live:
+                parts.Add(TurnDisplay.FormatShort(nowMs - live.SinceMs));
+                break;
+            case TurnDisplay.Ended ended:
+                parts.Add("Ran " + TurnDisplay.FormatShort(ended.DurationMs));
+                break;
+        }
+        if (TurnDisplay.Tools(session.Turn?.ToolCalls ?? 0) is { } tools) parts.Add(tools);
+        Detail = string.Join(" · ", parts);
     }
 
     public string Title { get; }
     public string Detail { get; }
     public Brush Brush { get; }
 
-    private static string StateText(AgentSession session) => session.Light switch
+    private static string StateText(AgentSession session) => session.DisplayState switch
     {
-        TrafficLight.Yellow => "Needs you",
-        TrafficLight.Green => RawStateWire.Parse(session.Record.State) == RawState.Executing ? "Running" : "Thinking",
-        TrafficLight.Red => RawStateWire.Parse(session.Record.State) == RawState.QuotaExceeded ? "Quota hit" : "Done",
-        _ => "Idle",
+        AgentLightState.AwaitingInput => "Needs you",
+        AgentLightState.Executing => "Running",
+        AgentLightState.Thinking => "Thinking",
+        AgentLightState.Stopped => (session.RawState == "quota_exceeded" ? "Quota exceeded" : "Stopped") + session.RunOutcomeSuffix,
+        _ => "Idle" + session.RunOutcomeSuffix,
     };
-
-    private static string ProviderName(string provider) => provider switch
-    {
-        "claude" => "Claude Code",
-        "codex" => "Codex",
-        "cursor" => "Cursor",
-        "" => "Agent",
-        _ => provider,
-    };
-
-    private static string AgeText(long ageMs) => ageMs switch
-    {
-        < 10_000 => "now",
-        < 60_000 => $"{ageMs / 1000}s",
-        < 3_600_000 => $"{ageMs / 60_000}m",
-        _ => $"{ageMs / 3_600_000}h",
-    };
-
 }

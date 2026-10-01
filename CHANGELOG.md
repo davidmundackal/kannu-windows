@@ -4,6 +4,26 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - The notch's lights follow macOS Kannu's rules exactly
+- **Developer label:** "go" (Phase 1 of the parity plan: the traffic-light state machine)
+- **Agent label:** Port of AgentTrafficLightMapper, execution clock and subagent fold, with their tests
+- **Changes:**
+  - `AgentStateMachine`: `resolveHookState` (6-minute active window, 5-minute yellow unless held,
+    red 5 s then dim 5 s), the per-provider yellow hold (REGRESSIONS entry 12), the stale-cap rules
+    for Claude files a live process or subagent still proves, the Claude hook/passive reconciler
+    (entries 5 and 7), host/engine identity (Cursor driving Claude names the card), one card per
+    conversation, and ended red chats staying listed dim for 69 s.
+  - `AgentExecutionClock` and `TurnDisplay`: a run's clock survives a staleness demotion and only
+    restarts after a real stop (entry 15); cards show "Running 3m", "Ran 1h 2m", "12 tools".
+  - `SubagentFold`: a subagent's file folds into its chat's card, turning it yellow when the subagent
+    waits, adding its tool calls to the turn, never relighting a finished chat.
+  - `HookSessionReader` + `AgentSessionPipeline`: status files to cards in the macOS order; stale files
+    are deleted only if unchanged since read and only under the hooks' lock.
+  - The app reruns the pipeline every second only while something is listed; idle, it does nothing.
+  - Cards order as on macOS (red, then yellow, then green) and show provider, state, run time and tools.
+  - Replaces the earlier simplified resolver. 205 tests, including ports of macOS
+    RegressionGuardTests, ClaudeReconcilerTests, SubagentFoldTests and AgentExecutionClockTests.
+
 ### 2026-10-01 - Every agent macOS Kannu watches now reports to the Windows notch
 - **Developer label:** "go" (Phase 1 of the parity plan: every agent provider and the full hook port)
 - **Agent label:** Hook parity with macOS script v43, installers for all eight agents from one layout table

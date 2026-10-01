@@ -16,16 +16,6 @@ using System.Text;
 
 namespace Kannu.Core;
 
-/// <summary>One status file as the notch shows it.</summary>
-public sealed record AgentSession(string Key, StatusRecord Record, TrafficLight Light, bool Visible, long AgeMs)
-{
-    /// <summary>What the row is called: the project folder, else the provider.</summary>
-    public string Title =>
-        !string.IsNullOrWhiteSpace(Record.Name) ? Record.Name!
-        : !string.IsNullOrWhiteSpace(Record.Project) ? Record.Project!
-        : StatusPaths.ProjectName(Record.Cwd) ?? Record.Provider;
-}
-
 /// <summary>Reads and writes status files. Shared by the hook (writer) and the app (reader).</summary>
 public static class StatusStore
 {
@@ -106,48 +96,4 @@ public static class StatusStore
             }
         }
     }
-
-    /// <summary>Every readable status file in <paramref name="statusDirectory"/>, keyed by file name stem.</summary>
-    public static IReadOnlyList<(string Key, StatusRecord Record)> ReadAll(string statusDirectory)
-    {
-        var result = new List<(string, StatusRecord)>();
-        IEnumerable<string> files;
-        try
-        {
-            files = Directory.EnumerateFiles(statusDirectory, "*.json");
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            return result;
-        }
-
-        try
-        {
-            foreach (var file in files)
-            {
-                var name = Path.GetFileName(file);
-                if (name.StartsWith('.')) continue;
-                if (Read(file) is { } record) result.Add((Path.GetFileNameWithoutExtension(name), record));
-            }
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        {
-            // The directory changed under the enumeration; the watcher will ask again.
-        }
-        return result;
-    }
-
-    /// <summary>Resolves records to sessions, most urgent first, then most recent.</summary>
-    public static IReadOnlyList<AgentSession> Resolve(IEnumerable<(string Key, StatusRecord Record)> records, long nowMs) =>
-        records
-            .Select(r =>
-            {
-                var age = nowMs - r.Record.Ts;
-                var light = StatusResolver.Resolve(RawStateWire.Parse(r.Record.State), age);
-                return new AgentSession(r.Key, r.Record, light.Light, light.Visible, Math.Max(0, age));
-            })
-            .Where(s => s.Visible)
-            .OrderByDescending(s => s.Light.Urgency())
-            .ThenBy(s => s.AgeMs)
-            .ToList();
 }

@@ -22,31 +22,34 @@ using Kannu.Core;
 namespace Kannu.App;
 
 /// <summary>
-/// Watches the status directory and publishes resolved sessions on the UI thread. Disk is read only
-/// when the directory changes (debounced, off the UI thread); the age tick re-resolves the cached
-/// records so a stale light dims without rescanning anything.
+/// Watches the status directory and publishes the session list on the UI thread. Disk is read only
+/// when the directory changes (debounced, off the UI thread). A one-second tick re-runs the pipeline on
+/// the cached files so red collapses and stale lights dim on time; it runs only while there is
+/// something on screen, so an idle Kannu does no periodic work at all.
 /// </summary>
 internal sealed class StatusMonitor : IDisposable
 {
     private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(150);
-    private static readonly TimeSpan AgeTick = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan Tick = TimeSpan.FromSeconds(1);
 
     private readonly string _directory;
-    private readonly Action<IReadOnlyList<AgentSession>> _publish;
+    private readonly Action<PipelineResult> _publish;
+    private readonly AgentSessionPipeline _pipeline;
     private readonly FileSystemWatcher _watcher;
     private readonly DispatcherTimer _debounce;
-    private readonly DispatcherTimer _ageTick;
+    private readonly DispatcherTimer _tick;
     private readonly Dispatcher _dispatcher;
 
-    private IReadOnlyList<(string Key, StatusRecord Record)> _records = [];
+    private IReadOnlyList<HookFile> _files = [];
     private bool _loading;
     private bool _dirty;
 
-    public StatusMonitor(string directory, Action<IReadOnlyList<AgentSession>> publish)
+    public StatusMonitor(string directory, Action<PipelineResult> publish)
     {
         _directory = directory;
         _publish = publish;
         _dispatcher = Dispatcher.CurrentDispatcher;
+        _pipeline = new AgentSessionPipeline(new AgentTimings(), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
         _debounce = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Debounce };
         _debounce.Tick += (_, _) =>
@@ -55,8 +58,8 @@ internal sealed class StatusMonitor : IDisposable
             Reload();
         };
 
-        _ageTick = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = AgeTick };
-        _ageTick.Tick += (_, _) => Publish();
+        _tick = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Tick };
+        _tick.Tick += (_, _) => Publish();
 
         // No filter: a hook's atomic write is a rename from a .tmp name, which a "*.json" filter can miss.
         _watcher = new FileSystemWatcher(directory)
@@ -74,7 +77,6 @@ internal sealed class StatusMonitor : IDisposable
     public void Start()
     {
         _watcher.EnableRaisingEvents = true;
-        _ageTick.Start();
         Reload();
     }
 
@@ -101,7 +103,7 @@ internal sealed class StatusMonitor : IDisposable
             do
             {
                 _dirty = false;
-                _records = await Task.Run(() => StatusStore.ReadAll(_directory));
+                _files = await Task.Run(() => HookSessionReader.ReadFiles(_directory));
                 Publish();
             } while (_dirty);
         }
@@ -111,14 +113,28 @@ internal sealed class StatusMonitor : IDisposable
         }
     }
 
-    private void Publish() =>
-        _publish(StatusStore.Resolve(_records, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+    private void Publish()
+    {
+        var result = _pipeline.Update(_files, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        if (result.StaleFiles.Count > 0)
+        {
+            var stale = result.StaleFiles;
+            _ = Task.Run(() =>
+            {
+                foreach (var file in stale) HookSessionReader.RemoveIfUnchanged(_directory, file);
+            });
+        }
+
+        if (result.Sessions.Count > 0) _tick.Start();
+        else _tick.Stop();
+        _publish(result);
+    }
 
     public void Dispose()
     {
         _watcher.EnableRaisingEvents = false;
         _watcher.Dispose();
         _debounce.Stop();
-        _ageTick.Stop();
+        _tick.Stop();
     }
 }

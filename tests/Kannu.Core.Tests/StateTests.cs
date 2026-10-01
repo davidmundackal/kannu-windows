@@ -79,45 +79,8 @@ public class StateMergeTests
     }
 }
 
-public class StatusResolverTests
+public class RawStateWireTests
 {
-    [Theory]
-    [InlineData(RawState.Thinking, 0, TrafficLight.Green, true)]
-    [InlineData(RawState.Executing, StatusResolver.ActiveStaleMs, TrafficLight.Green, true)]
-    [InlineData(RawState.Executing, StatusResolver.ActiveStaleMs + 1, TrafficLight.Inactive, true)]
-    [InlineData(RawState.AwaitingInput, 1000, TrafficLight.Yellow, true)]
-    [InlineData(RawState.AwaitingInput, StatusResolver.AwaitingInputStaleMs + 1, TrafficLight.Inactive, true)]
-    [InlineData(RawState.Stopped, 1000, TrafficLight.Red, true)]
-    [InlineData(RawState.QuotaExceeded, 1000, TrafficLight.Red, true)]
-    [InlineData(RawState.Stopped, StatusResolver.KeepVisibleMs + 1, TrafficLight.Inactive, false)]
-    [InlineData(RawState.Idle, 1000, TrafficLight.Inactive, true)]
-    [InlineData(RawState.Idle, StatusResolver.KeepVisibleMs + 1, TrafficLight.Inactive, false)]
-    [InlineData(RawState.Thinking, -5000, TrafficLight.Green, true)]
-    public void AgeLadder(RawState state, long ageMs, TrafficLight light, bool visible)
-    {
-        Assert.Equal(new ResolvedLight(light, visible), StatusResolver.Resolve(state, ageMs));
-    }
-
-    [Fact]
-    public void UnknownStateIsDim()
-    {
-        Assert.Equal(TrafficLight.Inactive, StatusResolver.Resolve(null, 0).Light);
-    }
-
-    [Fact]
-    public void SessionsSortMostUrgentFirst()
-    {
-        var records = new[]
-        {
-            ("a", new StatusRecord { State = "stopped", Ts = 900 }),
-            ("b", new StatusRecord { State = "executing", Ts = 900 }),
-            ("c", new StatusRecord { State = "awaiting_input", Ts = 500 }),
-            ("d", new StatusRecord { State = "stopped", Ts = -10_000_000 }),
-        };
-        var sessions = StatusStore.Resolve(records, 1000);
-        Assert.Equal(["c", "b", "a"], sessions.Select(s => s.Key));
-    }
-
     [Theory]
     [InlineData("stopped", RawState.Stopped)]
     [InlineData("AWAITING_INPUT", RawState.AwaitingInput)]
