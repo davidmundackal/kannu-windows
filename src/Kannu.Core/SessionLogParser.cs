@@ -156,7 +156,7 @@ public sealed partial class SessionLogParser(string home)
         // Whether the deciding record is also the newest line: a skipped line (bookkeeping, a torn
         // write) means mtime no longer vouches for it.
         var isNewestLine = true;
-        foreach (var line in text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Reverse())
+        foreach (var line in Enumerable.Reverse(text.Split('\n', StringSplitOptions.RemoveEmptyEntries)))
         {
             var newest = isNewestLine;
             isNewestLine = false;

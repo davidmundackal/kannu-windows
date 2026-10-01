@@ -4,6 +4,15 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - CI builds again on the newer Windows .NET SDK
+- **Developer label:** CI red on PR #1 (run 4): `SessionLogParser.cs(159,30): error CS1579`
+- **Agent label:** Fix a compiler-version-dependent overload binding; pin the C# version
+- **Changes:**
+  - `SessionLogParser`: `Enumerable.Reverse(...)` instead of `array.Reverse()`, which the newer SDK
+    on the Windows runner (8.0.425) bound to the in-place `MemoryExtensions.Reverse` returning void.
+  - `Directory.Build.props`: `LangVersion` pinned to 12 (was `latest`), so local and CI compilers
+    resolve overloads the same way.
+
 ### 2026-10-01 - Cursor chats show on the notch from its transcripts and database
 - **Developer label:** "go" (Phase 1 of the parity plan: Cursor passive detection)
 - **Agent label:** Port of CursorTranscriptParser, CursorComposerStore, CursorGlassAgentStore and the Cursor merge rules
