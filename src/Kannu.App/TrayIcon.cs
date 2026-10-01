@@ -50,8 +50,28 @@ internal sealed class TrayIcon : IDisposable
             else notch.Hide();
         };
 
-        var install = new ToolStripMenuItem("Install Claude Code hooks", null, (_, _) => RunSetup(HookSetup.Install));
-        var remove = new ToolStripMenuItem("Remove Claude Code hooks", null, (_, _) => RunSetup(HookSetup.Remove));
+        // One item per agent: checked when Kannu's hook is installed; clicking installs or removes it.
+        var agents = new ToolStripMenuItem("Agent hooks");
+        foreach (var provider in Enum.GetValues<AgentProvider>())
+        {
+            var item = new ToolStripMenuItem(provider.DisplayName()) { Tag = provider };
+            item.Click += (_, _) => RunSetup(() => HookSetup.IsInstalled(provider)
+                ? HookSetup.Uninstall(provider)
+                : HookSetup.Install(provider));
+            agents.DropDownItems.Add(item);
+        }
+        agents.DropDownOpening += (_, _) =>
+        {
+            foreach (ToolStripMenuItem item in agents.DropDownItems)
+            {
+                var provider = (AgentProvider)item.Tag!;
+                var installed = HookSetup.IsInstalled(provider);
+                item.Checked = installed;
+                // Installing for a CLI that never ran here would create its folder.
+                item.Enabled = installed || HookSetup.ToolIsPresent(provider);
+            }
+        };
+
         var openFolder = new ToolStripMenuItem("Open status folder", null, (_, _) =>
             Process.Start(new ProcessStartInfo("explorer.exe", $"\"{statusDirectory}\"") { UseShellExecute = true }));
 
@@ -60,18 +80,11 @@ internal sealed class TrayIcon : IDisposable
         {
             show,
             new ToolStripSeparator(),
-            install,
-            remove,
+            agents,
             openFolder,
             new ToolStripSeparator(),
             new ToolStripMenuItem("Quit Kannu", null, (_, _) => quit()),
         });
-        menu.Opening += (_, _) =>
-        {
-            var installed = HookSetup.IsInstalled();
-            install.Text = installed ? "Reinstall Claude Code hooks" : "Install Claude Code hooks";
-            remove.Enabled = installed;
-        };
 
         _icon = new NotifyIcon
         {
@@ -118,7 +131,7 @@ internal sealed class TrayIcon : IDisposable
         {
             _icon.ShowBalloonTip(4000, "Kannu", action(), ToolTipIcon.Info);
         }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or HookInstallException)
         {
             System.Windows.MessageBox.Show(e.Message, "Kannu", System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Warning);

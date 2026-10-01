@@ -29,8 +29,9 @@ jobs:
         shell: pwsh
         run: |
           $env:KANNU_STATUS_DIR = Join-Path $env:RUNNER_TEMP 'kannu-status'
-          '{"hook_event_name":"Stop","session_id":"ci"}' | ./out/win-x64/kannu-hook.exe claude
+          $line = '{"session_id":"ci"}' | ./out/win-x64/kannu-hook.exe stopped claude Stop
           if ($LASTEXITCODE -ne 0) { throw "hook exited $LASTEXITCODE" }
+          if ($line -ne '{"permission":"allow","continue":true}') { throw "unexpected stdout: $line" }
           $status = Get-Content (Join-Path $env:KANNU_STATUS_DIR 'claude-ci.json') | ConvertFrom-Json
           if ($status.state -ne 'stopped') { throw "expected stopped, got $($status.state)" }
 

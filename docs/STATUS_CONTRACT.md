@@ -22,9 +22,14 @@ One file per session: `{provider}-{sessionId}.json`. Both ids are reduced to `[A
 |--------------|-----------------------------------------------------------------|
 | `state`      | `idle`, `thinking`, `executing`, `awaiting_input`, `stopped`, `quota_exceeded` |
 | `ts`         | Unix ms of the write that set `state`                           |
-| `provider`   | `claude` (more later)                                           |
+| `provider`   | `claude`, `cursor`, `vscode`, `copilot`, `codex`, `antigravity`, `gemini`, `qwen`, `opencode` |
 | `hook_event` | The event that wrote it; scopes the race merge                  |
-| `project`, `cwd`, `name` | Optional labels                                     |
+| `project`, `cwd`, `name` | Optional labels (`name` is the chat title)          |
+| `parent_id`  | A subagent's file: the chat it folds into                       |
+| `tool_errors`| Tool failures since the last prompt (diagnostic)                |
+| `unattended` | Session runs with permission checks bypassed (sticky)           |
+| `ended_on_error` | The run ended on an error (StopFailure, Antigravity error)  |
+| `turn_started_ms`, `turn_ended_ms`, `turn_tool_calls`, `turn_tool_ids`, `turn_transcript_offset`, `transcript_path` | Turn metrics: one request's run time and tool calls |
 
 ## Writing
 
@@ -34,8 +39,18 @@ One file per session: `{provider}-{sessionId}.json`. Both ids are reduced to `[A
 - Merge: within 2 s of the existing write, and for the same `hook_event` (or an existing
   `PermissionRequest` yellow), the higher-priority state is kept with its original `ts`.
   Priority: `quota_exceeded` > `awaiting_input` > `stopped` > `executing` > `thinking` > `idle`.
-- `SessionEnd` deletes the file.
-- The hook never prints anything and always exits 0.
+- Cursor's sticky yellow: an `afterAgentThought` within 5 min of an `awaiting_input` write keeps the
+  yellow and its `ts`.
+- `SessionEnd` deletes the file; `SessionStart` from `/compact` or `/resume` changes nothing.
+- The hook always exits 0 and prints exactly the line its agent expects:
+  `{"permission":"allow","continue":true}` for most, `{}` for Gemini CLI, Qwen Code and Copilot CLI,
+  nothing for Codex.
+
+## Invoking the hook
+
+`kannu-hook.exe <state> <provider> [hook_event] [matcher_key]`, hook JSON on stdin — the same
+arguments as the macOS hook script. `state` is the installer's state for the event (used when the
+event has no mapping); `matcher_key` marks a matcher-scoped group whose state is trusted as is.
 
 ## Reading
 

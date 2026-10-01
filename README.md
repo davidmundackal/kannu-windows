@@ -14,7 +14,8 @@ same status files ([docs/STATUS_CONTRACT.md](docs/STATUS_CONTRACT.md)).
 
 ## Status
 
-Early. Supported today: **Claude Code** on Windows 10 and 11.
+Early. Windows 10 and 11. Hooks for **Claude Code, Cursor, VS Code Copilot and Copilot CLI, Codex CLI,
+Antigravity, Gemini CLI, Qwen Code and opencode**.
 
 ## Build and run
 
@@ -25,16 +26,17 @@ Requirements: Windows 10/11, the [.NET 8 SDK](https://dotnet.microsoft.com/downl
 ./out/win-x64/Kannu.exe
 ```
 
-Then right-click the tray dot and choose **Install Claude Code hooks**. New Claude Code sessions show
-up on the notch.
+Then right-click the tray eye, open **Agent hooks** and tick each agent you use. New sessions show up
+on the notch.
 
 What installing does:
 
 - copies `kannu-hook.exe` to `%LOCALAPPDATA%\Kannu\bin\`
-- backs up `%USERPROFILE%\.claude\settings.json` next to itself (`settings.json.kannu-backup-<time>`)
-- adds Kannu's hook entries to it, keeping all of your own hooks
+- adds Kannu's hook entries to that agent's settings (for example `%USERPROFILE%\.claude\settings.json`),
+  keeping all of your own hooks, and keeps the previous file as `<name>.kannu-backup`
+- refuses, changing nothing, if the file is not plain JSON (comments, trailing commas)
 
-**Remove Claude Code hooks** takes out exactly those entries again.
+Unticking the agent takes out exactly those entries again.
 
 ## Layout
 

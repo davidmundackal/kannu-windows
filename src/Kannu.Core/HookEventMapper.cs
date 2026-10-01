@@ -28,111 +28,133 @@ public enum HookAction
     Delete,
 }
 
-public sealed record HookDecision(HookAction Action, RawState State, string HookEvent, string SessionId, string? Cwd)
+public sealed record HookDecision(HookAction Action, RawState State)
 {
-    public static HookDecision Ignore(string hookEvent, string sessionId) =>
-        new(HookAction.Ignore, RawState.Idle, hookEvent, sessionId, null);
+    public static readonly HookDecision Ignore = new(HookAction.Ignore, RawState.Idle);
+    public static readonly HookDecision Delete = new(HookAction.Delete, RawState.Idle);
+
+    public static HookDecision Write(RawState state) => new(HookAction.Write, state);
 }
 
 /// <summary>
-/// Turns one hook invocation into a light change. Keyed by the event name, which is what each agent
-/// CLI documents; adding a provider means adding its event names here, not a new branch per agent.
+/// One hook event to a light change, for every agent Kannu supports. A port of the event table in
+/// the macOS hook script (v43). Keyed by event name — each agent CLI's own vocabulary — so a new
+/// provider adds names here rather than a branch per agent. An event not listed keeps the
+/// installer's state for it.
 /// </summary>
 public static class HookEventMapper
 {
-    /// <param name="provider">Which agent fired the hook (from the installed command line).</param>
-    /// <param name="forcedState">
-    /// A state the installer already chose for a matcher-scoped hook group (Claude's Notification group
-    /// is installed with a matcher that only fires for prompts). Trusted over re-deriving it here.
-    /// </param>
-    /// <param name="payload">The JSON the agent wrote to the hook's stdin.</param>
-    public static HookDecision Map(string provider, string? forcedState, JsonElement payload)
+    internal static HookDecision Decide(string provider, HookInvocation invocation, string hookEvent, HookPayload payload)
     {
-        var hookEvent = PickString(payload, "hook_event_name", "hookEventName", "event") ?? "";
-        var sessionId = StatusPaths.SanitizeId(
-            PickString(payload, "session_id", "sessionId", "conversation_id", "conversationId", "thread_id"));
-        var cwd = PickCwd(payload);
+        var state = RawStateWire.Parse(invocation.ArgState) ?? RawState.Thinking;
 
-        HookDecision Write(RawState state) => new(HookAction.Write, state, hookEvent, sessionId, cwd);
-
-        if (RawStateWire.Parse(forcedState) is { } forced) return Write(forced);
+        // Matcher-scoped group: the installer already picked the state for exactly this case.
+        if (invocation.MatcherKey.Length > 0) return HookDecision.Write(state);
 
         switch (hookEvent)
         {
-            case "SessionStart":
-                // SessionStart also fires for /compact and /resume mid-conversation; seeding idle there
-                // would dim a session that is working. Only a real startup opens the card.
-                var source = PickString(payload, "source") ?? "";
-                return source is "compact" or "resume" ? HookDecision.Ignore(hookEvent, sessionId) : Write(RawState.Idle);
+            // Cursor reports a proposal while its approval card is open; the gated payload is the signal.
+            case "afterAgentResponse":
+                if (LooksGatedPayload(payload.Tool, payload.ToolInput)) state = RawState.AwaitingInput;
+                break;
 
-            case "UserPromptSubmit":
-            case "PostToolUse":
-            case "PostToolUseFailure":
-                return Write(RawState.Thinking);
+            case "afterAgentThought" or "PreInvocation":
+                state = RawState.Thinking;
+                break;
 
-            case "PreToolUse":
-                // A question or a plan to approve is a wait on the user, not work.
-                return Write(IsApprovalGatedTool(payload) ? RawState.AwaitingInput : RawState.Executing);
+            case "preToolUse" or "beforeMCPExecution" or "PreToolUse":
+                // Questions and plans to approve are waits on the user. Everything else (including
+                // Cursor's WebSearch/WebFetch/Shell, approved before this fires) is running.
+                state = IsApprovalGatedTool(payload) ? RawState.AwaitingInput : RawState.Executing;
+                break;
+
+            case "beforeShellExecution":
+                // Fires for auto-approved commands too, so it means "running", not "waiting".
+                state = RawState.Executing;
+                break;
+
+            case "PermissionRequest" when provider == "copilot":
+                // Copilot CLI fires this before its own rules decide; its Notification says when a
+                // prompt is really on screen.
+                return HookDecision.Ignore;
 
             case "PermissionRequest":
-                return Write(RawState.AwaitingInput);
+                state = RawState.AwaitingInput;
+                break;
 
             case "Notification":
-                // Without a matcher, only a prompt on screen is yellow; idle reminders change nothing.
-                var type = PickString(payload, "notification_type", "notificationType") ?? "";
-                return type is "permission_prompt" or "elicitation_dialog" or "ToolPermission"
-                    ? Write(RawState.AwaitingInput)
-                    : HookDecision.Ignore(hookEvent, sessionId);
+                // Without a matcher (VS Code, Copilot CLI, Gemini CLI, Qwen Code), only a prompt on
+                // screen is yellow; idle reminders and other notices change nothing.
+                var type = payload.Pick("notification_type", "notificationType");
+                if (type is not ("ToolPermission" or "permission_prompt" or "elicitation_dialog")) return HookDecision.Ignore;
+                state = RawState.AwaitingInput;
+                break;
 
-            case "Stop":
-            case "StopFailure":
-                return Write(RawState.Stopped);
+            case "BeforeAgent":
+                state = RawState.Thinking;
+                break;
+
+            case "BeforeTool":
+                state = RawState.Executing;
+                break;
+
+            case "AfterTool":
+                state = RawState.Thinking;
+                break;
+
+            case "AfterAgent":
+                state = RawState.Stopped;
+                break;
+
+            case "postToolUse" or "postToolUseFailure" or "PostToolUse" or "PostToolUseFailure" or "PostInvocation":
+                state = RawState.Thinking;
+                break;
+
+            case "stop" or "Stop" or "StopFailure":
+                state = IsAntigravityQuotaStop(provider, hookEvent, payload) ? RawState.QuotaExceeded : RawState.Stopped;
+                break;
 
             case "SessionEnd":
-                return new HookDecision(HookAction.Delete, RawState.Idle, hookEvent, sessionId, cwd);
-
-            default:
-                return HookDecision.Ignore(hookEvent, sessionId);
+                return HookDecision.Delete;
         }
+        return HookDecision.Write(state);
     }
 
-    internal static bool IsApprovalGatedTool(JsonElement payload)
+    /// <summary>
+    /// Questions and plan approvals. Claude runs matcher-scoped and generic PreToolUse groups in
+    /// parallel with no ordering, so the generic group must reach the same verdict on its own.
+    /// </summary>
+    internal static bool IsApprovalGatedTool(HookPayload payload)
     {
-        var tool = (PickString(payload, "tool_name", "toolName") ?? "")
-            .ToLowerInvariant().Replace("_", "").Replace("-", "");
-        if (tool is "askquestion" or "userquestion" or "askuserquestion" or "exitplanmode") return true;
-        return payload.ValueKind == JsonValueKind.Object
-            && payload.TryGetProperty("tool_input", out var input)
-            && input.ValueKind == JsonValueKind.Object
-            && input.TryGetProperty("questions", out _);
+        if (Compact(payload.Tool) is "askquestion" or "userquestion" or "askuserquestion" or "exitplanmode") return true;
+        return payload.ToolInput.ValueKind == JsonValueKind.Object && payload.ToolInput.TryGetProperty("questions", out _);
     }
 
-    private static string? PickCwd(JsonElement payload)
+    internal static bool RequiresApproval(string name)
     {
-        var cwd = PickString(payload, "cwd");
-        if (cwd is null && payload.ValueKind == JsonValueKind.Object
-            && payload.TryGetProperty("workspace_roots", out var roots)
-            && roots.ValueKind == JsonValueKind.Array && roots.GetArrayLength() > 0
-            && roots[0].ValueKind == JsonValueKind.String)
-        {
-            cwd = roots[0].GetString();
-        }
-        if (string.IsNullOrWhiteSpace(cwd)) return null;
-        cwd = cwd.Replace("file://", "").TrimEnd('/', '\\');
-        return cwd.Length is 0 or > 1024 ? null : cwd;
+        var lower = name.ToLowerInvariant();
+        return Compact(name) is "websearch" or "webfetch" or "search" or "askquestion" or "userquestion"
+                   or "shell" or "runterminalcmd" or "bash"
+               || lower is "web_search" or "web_fetch" or "ask_question" or "run_terminal_cmd";
     }
 
-    private static string? PickString(JsonElement payload, params string[] keys)
+    internal static bool LooksGatedPayload(string name, JsonElement input) =>
+        RequiresApproval(name)
+        || HookPayload.HasAny(input, "questions", "search_term", "searchTerm", "query", "url", "uri",
+            "command", "working_directory");
+
+    /// <summary>
+    /// Antigravity reports a rate-limited run only through its Stop payload, so a quota stop gets its
+    /// own state for the card to name.
+    /// </summary>
+    private static bool IsAntigravityQuotaStop(string provider, string hookEvent, HookPayload payload)
     {
-        if (payload.ValueKind != JsonValueKind.Object) return null;
-        foreach (var key in keys)
-        {
-            if (payload.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String)
-            {
-                var s = value.GetString();
-                if (!string.IsNullOrEmpty(s)) return s;
-            }
-        }
-        return null;
+        if (provider != "antigravity" || hookEvent != "Stop") return false;
+        var signal = (payload.Pick("terminationReason", "termination_reason") + " " + payload.Pick("error")).ToLowerInvariant();
+        return signal.Contains("quota") || signal.Contains("rate_limit") || signal.Contains("rate limit")
+               || signal.Contains("resource_exhausted");
     }
+
+    internal static string Compact(string value) =>
+        value.Trim().ToLowerInvariant().Replace("_", "").Replace("-", "").Replace(" ", "");
 }

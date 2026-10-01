@@ -12,24 +12,22 @@
 // You should have received a copy of the GNU General Public License along with this program. If
 // not, see <https://www.gnu.org/licenses/>.
 
-// Usage: kannu-hook <provider> [--state <raw state>]
+// Usage: kannu-hook <state> <provider> [hook_event] [matcher_key]   (hook JSON on stdin)
 //
-// Reads the agent's hook payload from stdin and updates the session's status file. It must never
-// get in the agent's way: whatever happens it prints nothing and exits 0, because a hook that fails
-// or writes to stdout can change what the agent does next.
+// The same arguments as the macOS hook script, so the installers' tables carry over. It must never
+// get in the agent's way: it always exits 0 and always prints the one line the agent expects
+// (HookOutput), even when everything else failed.
 
+using System.Runtime.InteropServices;
 using System.Text;
 using Kannu.Core;
 
+var invocation = HookInvocation.FromArgs(args);
+var copilotCli = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("COPILOT_CLI"));
+string output;
+
 try
 {
-    var provider = args.Length > 0 ? args[0] : "claude";
-    string? forcedState = null;
-    for (var i = 1; i < args.Length - 1; i++)
-    {
-        if (args[i] == "--state") forcedState = args[i + 1];
-    }
-
     using var stdin = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
     var buffer = new char[HookRunner.MaxInputChars + 1];
     var read = stdin.ReadBlock(buffer, 0, buffer.Length);
@@ -37,13 +35,37 @@ try
     var statusDirectory = Environment.GetEnvironmentVariable("KANNU_STATUS_DIR") is { Length: > 0 } overridden
         ? overridden
         : StatusPaths.DefaultStatusDirectory();
+    var environment = new HookEnvironment(
+        copilotCli,
+        HasConsoleWindow(),
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
-    HookRunner.Run(provider, forcedState, new string(buffer, 0, read), statusDirectory,
-        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+    output = HookRunner.Run(invocation, new string(buffer, 0, read), statusDirectory,
+        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), environment).Output;
 }
 catch
 {
-    // Deliberately swallowed: see the header.
+    output = HookOutput.Fallback(invocation.Provider, copilotCli);
 }
 
+if (output.Length > 0) Console.Out.WriteLine(output);
 return 0;
+
+// A backstop to COPILOT_CLI: a terminal agent runs its hooks in a console whose window is on screen;
+// an editor's extension host spawns them with no console window or a hidden one.
+static bool HasConsoleWindow()
+{
+    if (!OperatingSystem.IsWindows()) return false;
+    var window = Native.GetConsoleWindow();
+    return window != IntPtr.Zero && Native.IsWindowVisible(window);
+}
+
+internal static partial class Native
+{
+    [LibraryImport("kernel32.dll")]
+    internal static partial IntPtr GetConsoleWindow();
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool IsWindowVisible(IntPtr hWnd);
+}

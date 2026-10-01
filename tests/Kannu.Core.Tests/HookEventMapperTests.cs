@@ -12,136 +12,114 @@
 // You should have received a copy of the GNU General Public License along with this program. If
 // not, see <https://www.gnu.org/licenses/>.
 
-using System.Text.Json;
 using Kannu.Core;
 
 namespace Kannu.Core.Tests;
 
 public class HookEventMapperTests
 {
-    private static HookDecision Map(string json, string? forced = null)
+    private static HookDecision Decide(string provider, string argState, string hookEvent, string json, string matcherKey = "")
     {
-        using var doc = JsonDocument.Parse(json);
-        return HookEventMapper.Map("claude", forced, doc.RootElement);
+        using var payload = HookPayload.Parse(json);
+        return HookEventMapper.Decide(provider, new HookInvocation(argState, provider, hookEvent, matcherKey), hookEvent, payload);
     }
 
     [Theory]
-    [InlineData("UserPromptSubmit", RawState.Thinking)]
-    [InlineData("PostToolUse", RawState.Thinking)]
-    [InlineData("PostToolUseFailure", RawState.Thinking)]
-    [InlineData("PermissionRequest", RawState.AwaitingInput)]
-    [InlineData("Stop", RawState.Stopped)]
-    [InlineData("StopFailure", RawState.Stopped)]
-    public void ClaudeEventsMapToTheirLight(string hookEvent, RawState expected)
+    [InlineData("UserPromptSubmit", "thinking", RawState.Thinking)]
+    [InlineData("PostToolUse", "thinking", RawState.Thinking)]
+    [InlineData("PostToolUseFailure", "thinking", RawState.Thinking)]
+    [InlineData("PermissionRequest", "awaiting_input", RawState.AwaitingInput)]
+    [InlineData("Stop", "stopped", RawState.Stopped)]
+    [InlineData("StopFailure", "stopped", RawState.Stopped)]
+    [InlineData("SessionStart", "idle", RawState.Idle)]
+    public void ClaudeEventsMapToTheirLight(string hookEvent, string argState, RawState expected)
     {
-        var decision = Map($$"""{"hook_event_name":"{{hookEvent}}","session_id":"abc"}""");
-        Assert.Equal(HookAction.Write, decision.Action);
-        Assert.Equal(expected, decision.State);
-        Assert.Equal("abc", decision.SessionId);
+        var d = Decide("claude", argState, hookEvent, "{}");
+        Assert.Equal(HookAction.Write, d.Action);
+        Assert.Equal(expected, d.State);
     }
 
     [Fact]
-    public void PreToolUseIsGreenForOrdinaryTools()
-    {
-        var d = Map("""{"hook_event_name":"PreToolUse","session_id":"s","tool_name":"Bash","tool_input":{"command":"ls"}}""");
-        Assert.Equal(RawState.Executing, d.State);
-    }
+    public void PreToolUseIsGreenForOrdinaryTools() =>
+        Assert.Equal(RawState.Executing, Decide("claude", "executing", "PreToolUse", """{"tool_name":"Bash","tool_input":{"command":"ls"}}""").State);
 
     [Theory]
     [InlineData("AskUserQuestion")]
     [InlineData("ExitPlanMode")]
     [InlineData("ask_user_question")]
-    public void PreToolUseIsYellowForToolsThatWaitOnTheUser(string tool)
-    {
-        var d = Map($$"""{"hook_event_name":"PreToolUse","session_id":"s","tool_name":"{{tool}}"}""");
-        Assert.Equal(RawState.AwaitingInput, d.State);
-    }
+    public void PreToolUseIsYellowForToolsThatWaitOnTheUser(string tool) =>
+        Assert.Equal(RawState.AwaitingInput, Decide("claude", "executing", "PreToolUse", $$"""{"tool_name":"{{tool}}"}""").State);
 
     [Fact]
-    public void PreToolUseWithQuestionsInputIsYellow()
-    {
-        var d = Map("""{"hook_event_name":"PreToolUse","session_id":"s","tool_name":"mcp__x__ask","tool_input":{"questions":[]}}""");
-        Assert.Equal(RawState.AwaitingInput, d.State);
-    }
-
-    [Theory]
-    [InlineData("startup", HookAction.Write)]
-    [InlineData("clear", HookAction.Write)]
-    [InlineData("compact", HookAction.Ignore)]
-    [InlineData("resume", HookAction.Ignore)]
-    public void SessionStartOnlySeedsIdleOnARealStart(string source, HookAction expected)
-    {
-        var d = Map($$"""{"hook_event_name":"SessionStart","session_id":"s","source":"{{source}}"}""");
-        Assert.Equal(expected, d.Action);
-        if (expected == HookAction.Write) Assert.Equal(RawState.Idle, d.State);
-    }
+    public void PreToolUseWithQuestionsInputIsYellow() =>
+        Assert.Equal(RawState.AwaitingInput, Decide("claude", "executing", "PreToolUse", """{"tool_name":"mcp__x__ask","tool_input":{"questions":[]}}""").State);
 
     [Fact]
-    public void SessionEndDeletes()
-    {
-        Assert.Equal(HookAction.Delete, Map("""{"hook_event_name":"SessionEnd","session_id":"s"}""").Action);
-    }
+    public void MatcherGroupStateIsTrustedAsIs() =>
+        Assert.Equal(RawState.Stopped, Decide("claude", "stopped", "Notification", """{"notification_type":"agent_completed"}""", "completed").State);
+
+    [Fact]
+    public void SessionEndDeletes() => Assert.Equal(HookAction.Delete, Decide("claude", "session_end", "SessionEnd", "{}").Action);
 
     [Theory]
     [InlineData("permission_prompt", HookAction.Write)]
     [InlineData("elicitation_dialog", HookAction.Write)]
+    [InlineData("ToolPermission", HookAction.Write)]
     [InlineData("idle_prompt", HookAction.Ignore)]
     [InlineData("auth_success", HookAction.Ignore)]
-    public void UnmatchedNotificationOnlyLightsYellowForAPrompt(string type, HookAction expected)
-    {
-        var d = Map($$"""{"hook_event_name":"Notification","session_id":"s","notification_type":"{{type}}"}""");
-        Assert.Equal(expected, d.Action);
-    }
+    public void UnmatchedNotificationOnlyLightsYellowForAPrompt(string type, HookAction expected) =>
+        Assert.Equal(expected, Decide("gemini", "awaiting_input", "Notification", $$"""{"notification_type":"{{type}}"}""").Action);
 
     [Fact]
-    public void ForcedStateFromAMatcherGroupWins()
-    {
-        var d = Map("""{"hook_event_name":"Notification","session_id":"s","message":"Claude needs your permission"}""", "awaiting_input");
-        Assert.Equal(HookAction.Write, d.Action);
-        Assert.Equal(RawState.AwaitingInput, d.State);
-    }
+    public void CopilotPermissionRequestIsIgnored() =>
+        Assert.Equal(HookAction.Ignore, Decide("copilot", "awaiting_input", "PermissionRequest", "{}").Action);
 
     [Theory]
-    [InlineData("SubagentStop")]
+    [InlineData("beforeSubmitPrompt", "thinking", RawState.Thinking)]
+    [InlineData("afterAgentThought", "thinking", RawState.Thinking)]
+    [InlineData("beforeShellExecution", "executing", RawState.Executing)]
+    [InlineData("postToolUse", "thinking", RawState.Thinking)]
+    [InlineData("stop", "stopped", RawState.Stopped)]
+    public void CursorEvents(string hookEvent, string argState, RawState expected) =>
+        Assert.Equal(expected, Decide("cursor", argState, hookEvent, "{}").State);
+
+    [Theory]
+    [InlineData("""{"tool_name":"WebSearch"}""", RawState.AwaitingInput)]
+    [InlineData("""{"tool_input":{"command":"rm -rf"}}""", RawState.AwaitingInput)]
+    [InlineData("""{"text":"done"}""", RawState.Executing)]
+    public void CursorAgentResponseIsYellowOnlyForAGatedProposal(string json, RawState expected) =>
+        Assert.Equal(expected, Decide("cursor", "executing", "afterAgentResponse", json).State);
+
+    [Theory]
+    [InlineData("BeforeAgent", RawState.Thinking)]
+    [InlineData("BeforeTool", RawState.Executing)]
+    [InlineData("AfterTool", RawState.Thinking)]
+    [InlineData("AfterAgent", RawState.Stopped)]
+    public void GeminiEvents(string hookEvent, RawState expected) =>
+        Assert.Equal(expected, Decide("gemini", "thinking", hookEvent, "{}").State);
+
+    [Theory]
+    [InlineData("""{"terminationReason":"RESOURCE_EXHAUSTED"}""", RawState.QuotaExceeded)]
+    [InlineData("""{"error":"Rate limit reached"}""", RawState.QuotaExceeded)]
+    [InlineData("""{"error":"network"}""", RawState.Stopped)]
+    public void AntigravityQuotaStop(string json, RawState expected) =>
+        Assert.Equal(expected, Decide("antigravity", "stopped", "Stop", json).State);
+
+    [Fact]
+    public void UnmappedEventKeepsTheInstallersState() =>
+        Assert.Equal(RawState.Thinking, Decide("opencode", "thinking", "PermissionReplied", "{}").State);
+
+    [Theory]
     [InlineData("")]
-    [InlineData("SomethingNew")]
-    public void UnknownEventsChangeNothing(string hookEvent)
-    {
-        Assert.Equal(HookAction.Ignore, Map($$"""{"hook_event_name":"{{hookEvent}}","session_id":"s"}""").Action);
-    }
+    [InlineData("not json")]
+    [InlineData("[1,2,3]")]
+    public void MalformedPayloadStillMovesTheLightByTheInstallersState(string json) =>
+        Assert.Equal(RawState.Stopped, Decide("claude", "stopped", "Stop", json).State);
 
     [Fact]
-    public void HostileSessionIdCannotEscapeTheStatusDirectory()
+    public void ToolNameIsInferredFromItsInput()
     {
-        var d = Map("""{"hook_event_name":"Stop","session_id":"..\\..\\Windows\\evil/../x"}""");
-        Assert.Equal("Windowsevilx", d.SessionId);
-        Assert.Equal("claude-Windowsevilx.json", StatusPaths.StatusFileName("claude", d.SessionId));
-    }
-
-    [Fact]
-    public void OversizedSessionIdIsCapped()
-    {
-        var d = Map($$"""{"hook_event_name":"Stop","session_id":"{{new string('a', 5000)}}"}""");
-        Assert.Equal(64, d.SessionId.Length);
-    }
-
-    [Fact]
-    public void MissingSessionIdFallsBackToDefault()
-    {
-        Assert.Equal("default", Map("""{"hook_event_name":"Stop"}""").SessionId);
-    }
-
-    [Fact]
-    public void NonObjectPayloadIsIgnored()
-    {
-        Assert.Equal(HookAction.Ignore, Map("[1,2,3]").Action);
-    }
-
-    [Fact]
-    public void WindowsCwdIsCarried()
-    {
-        var d = Map("""{"hook_event_name":"Stop","session_id":"s","cwd":"C:\\Users\\me\\src\\kannu\\"}""");
-        Assert.Equal(@"C:\Users\me\src\kannu", d.Cwd);
-        Assert.Equal("kannu", StatusPaths.ProjectName(d.Cwd));
+        using var payload = HookPayload.Parse("""{"tool_input":{"url":"https://x"}}""");
+        Assert.Equal("WebFetch", payload.Tool);
     }
 }
