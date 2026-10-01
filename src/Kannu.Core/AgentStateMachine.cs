@@ -32,7 +32,11 @@ public enum ClaudeTailState
 
 /// <param name="RecordTimestampMs">The deciding record's own time, when it has one.</param>
 /// <param name="NewestRecordIsConversational">False when the newest record is a draft, title or attachment trailer.</param>
-public sealed record ClaudeTailResult(ClaudeTailState State, long? RecordTimestampMs, bool NewestRecordIsConversational);
+/// <param name="RunError">Set only with TurnFinished, when the record that ended the turn is an API error.</param>
+public sealed record ClaudeTailResult(ClaudeTailState State, long? RecordTimestampMs, bool NewestRecordIsConversational = true, RunError? RunError = null)
+{
+    public static readonly ClaudeTailResult Unknown = new(ClaudeTailState.Unknown, null);
+}
 
 /// <summary>
 /// The traffic-light rules, ported from macOS <c>AgentTrafficLightMapper</c>. Every rule here has

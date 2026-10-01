@@ -4,6 +4,24 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - Claude Code sessions show on the notch even without hooks
+- **Developer label:** "go" (Phase 1 of the parity plan: passive Claude detection)
+- **Agent label:** Port of AgentSessionLogParser and buildClaudeSessions, with their macOS tests
+- **Changes:**
+  - `SessionLogParser`: Claude transcript tails classified as macOS does (tool in flight, owes a
+    response, turn finished, unreadable), with escalating read windows that survive a split
+    multibyte character (REGRESSIONS entry 4), Esc interrupts, API-error verdicts, and the draft
+    trailer that must not relight an idle chat. Chat titles from Claude's custom-title/ai-title,
+    else the first prompt; Codex session ids and prompts. Every verdict cached against mtime+size.
+  - `ClaudePassiveScanner`: reads `~/.claude/sessions/<pid>.json`, checks the process (start time
+    must fit the record, so a reused pid is dead; the late-written record rule of entry 3 kept),
+    and builds passive sessions. Passive detection never claims yellow; its live tails only hold a
+    hook's yellow (entry 12). Untrusted records are skipped field by field.
+  - The app's tick now feeds that evidence into the reconciler: a hook file is demoted when the
+    process died, promoted during a long silent tool call, and named from the transcript. 1 s while
+    a card is listed, 5 s otherwise.
+  - 248 tests, including ports of macOS AgentSessionLogParserTests and PassiveClaudeStateTests.
+
 ### 2026-10-01 - The notch's lights follow macOS Kannu's rules exactly
 - **Developer label:** "go" (Phase 1 of the parity plan: the traffic-light state machine)
 - **Agent label:** Port of AgentTrafficLightMapper, execution clock and subagent fold, with their tests

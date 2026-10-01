@@ -22,19 +22,22 @@ using Kannu.Core;
 namespace Kannu.App;
 
 /// <summary>
-/// Watches the status directory and publishes the session list on the UI thread. Disk is read only
-/// when the directory changes (debounced, off the UI thread). A one-second tick re-runs the pipeline on
-/// the cached files so red collapses and stale lights dim on time; it runs only while there is
-/// something on screen, so an idle Kannu does no periodic work at all.
+/// Watches the status directory and publishes the session list on the UI thread. Hook files are read
+/// only when the directory changes (debounced, off the UI thread). A tick re-runs the pipeline with
+/// fresh passive evidence (Claude's session records and transcript tails, read off the UI thread and
+/// cached against mtime and size): every second while a card is listed, so red collapses and stale
+/// lights dim on time, and every five seconds otherwise, to notice a Claude session with no hooks.
 /// </summary>
 internal sealed class StatusMonitor : IDisposable
 {
     private static readonly TimeSpan Debounce = TimeSpan.FromMilliseconds(150);
-    private static readonly TimeSpan Tick = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan BusyTick = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan IdleTick = TimeSpan.FromSeconds(5);
 
     private readonly string _directory;
     private readonly Action<PipelineResult> _publish;
     private readonly AgentSessionPipeline _pipeline;
+    private readonly SessionLogParser _logs;
     private readonly FileSystemWatcher _watcher;
     private readonly DispatcherTimer _debounce;
     private readonly DispatcherTimer _tick;
@@ -43,13 +46,17 @@ internal sealed class StatusMonitor : IDisposable
     private IReadOnlyList<HookFile> _files = [];
     private bool _loading;
     private bool _dirty;
+    private bool _refreshing;
+    private bool _refreshAgain;
 
     public StatusMonitor(string directory, Action<PipelineResult> publish)
     {
         _directory = directory;
         _publish = publish;
         _dispatcher = Dispatcher.CurrentDispatcher;
-        _pipeline = new AgentSessionPipeline(new AgentTimings(), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _pipeline = new AgentSessionPipeline(new AgentTimings(), home);
+        _logs = new SessionLogParser(home);
 
         _debounce = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Debounce };
         _debounce.Tick += (_, _) =>
@@ -58,8 +65,8 @@ internal sealed class StatusMonitor : IDisposable
             Reload();
         };
 
-        _tick = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Tick };
-        _tick.Tick += (_, _) => Publish();
+        _tick = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = IdleTick };
+        _tick.Tick += (_, _) => Refresh();
 
         // No filter: a hook's atomic write is a rename from a .tmp name, which a "*.json" filter can miss.
         _watcher = new FileSystemWatcher(directory)
@@ -77,6 +84,7 @@ internal sealed class StatusMonitor : IDisposable
     public void Start()
     {
         _watcher.EnableRaisingEvents = true;
+        _tick.Start();
         Reload();
     }
 
@@ -104,7 +112,7 @@ internal sealed class StatusMonitor : IDisposable
             {
                 _dirty = false;
                 _files = await Task.Run(() => HookSessionReader.ReadFiles(_directory));
-                Publish();
+                Refresh();
             } while (_dirty);
         }
         finally
@@ -113,9 +121,37 @@ internal sealed class StatusMonitor : IDisposable
         }
     }
 
-    private void Publish()
+    /// <summary>Passive evidence off the UI thread, then one pipeline pass on it. Never two at once.</summary>
+    private async void Refresh()
     {
-        var result = _pipeline.Update(_files, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        if (_refreshing)
+        {
+            _refreshAgain = true;
+            return;
+        }
+
+        _refreshing = true;
+        try
+        {
+            do
+            {
+                _refreshAgain = false;
+                var timings = _pipeline.Timings;
+                var passive = await Task.Run(() => ClaudePassiveScanner.Scan(_logs, timings,
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ProcessProbe.Of));
+                Publish(new PassiveEvidence(passive.Sessions, passive.DeadPidConversationIds, passive.LiveTails,
+                    new HashSet<string>(), []));
+            } while (_refreshAgain);
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private void Publish(PassiveEvidence evidence)
+    {
+        var result = _pipeline.Update(_files, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), evidence);
         if (result.StaleFiles.Count > 0)
         {
             var stale = result.StaleFiles;
@@ -125,8 +161,7 @@ internal sealed class StatusMonitor : IDisposable
             });
         }
 
-        if (result.Sessions.Count > 0) _tick.Start();
-        else _tick.Stop();
+        _tick.Interval = result.Sessions.Count > 0 ? BusyTick : IdleTick;
         _publish(result);
     }
 
