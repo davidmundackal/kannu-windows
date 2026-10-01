@@ -38,6 +38,10 @@ internal sealed class StatusMonitor : IDisposable
 
     private readonly string _directory;
     private readonly Action<PipelineResult> _publish;
+    private readonly Action<IReadOnlyDictionary<string, TurnTokens>> _publishTokens;
+    private readonly TurnTokenReader _tokens;
+    private readonly string _home;
+    private bool _readingTokens;
     private readonly AgentSessionPipeline _pipeline;
     private readonly SessionLogParser _logs;
     private readonly CursorPassive _cursor;
@@ -54,12 +58,15 @@ internal sealed class StatusMonitor : IDisposable
     private bool _refreshing;
     private bool _refreshAgain;
 
-    public StatusMonitor(string directory, Action<PipelineResult> publish)
+    public StatusMonitor(string directory, Action<PipelineResult> publish, Action<IReadOnlyDictionary<string, TurnTokens>> publishTokens)
     {
         _directory = directory;
         _publish = publish;
+        _publishTokens = publishTokens;
         _dispatcher = Dispatcher.CurrentDispatcher;
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _home = home;
+        _tokens = new TurnTokenReader(Path.Combine(home, ".claude", "projects"));
         _pipeline = new AgentSessionPipeline(new AgentTimings(), home);
         _logs = new SessionLogParser(home);
         _cursor = new CursorPassive(new CursorTranscripts(home), new CursorDatabase(CursorDatabase.DefaultUserDirectory()));
@@ -197,6 +204,24 @@ internal sealed class StatusMonitor : IDisposable
 
         _tick.Interval = result.Sessions.Count > 0 ? BusyTick : IdleTick;
         _publish(result);
+        ReadTokens(result.Sessions);
+    }
+
+    /// <summary>The cards' token totals, read off the UI thread, one pass at a time (macOS REGRESSIONS entry 11).</summary>
+    private async void ReadTokens(IReadOnlyList<AgentSession> sessions)
+    {
+        var requests = TurnTokenRequest.From(sessions, _home);
+        if (_readingTokens || requests.Count == 0) return;
+        _readingTokens = true;
+        try
+        {
+            var pass = await Task.Run(() => _tokens.Read(requests, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
+            _publishTokens(pass.Tokens);
+        }
+        finally
+        {
+            _readingTokens = false;
+        }
     }
 
     public void Dispose()

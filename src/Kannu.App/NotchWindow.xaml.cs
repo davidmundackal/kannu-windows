@@ -32,8 +32,9 @@ public partial class NotchWindow : Window
     private const double CollapsedWidth = 200;
     private const double CollapsedHeight = 32;
     private const double ExpandedWidth = 440;
-    private const double RowHeight = 30;
+    private const double RowHeight = 40;
     private const double ExpandedChrome = 36 + 12; // header row + bottom padding
+    private const double EmptyHeight = 30;
 
     private static readonly TimeSpan OpenDuration = TimeSpan.FromMilliseconds(220);
     private static readonly TimeSpan CloseDuration = TimeSpan.FromMilliseconds(180);
@@ -100,9 +101,9 @@ public partial class NotchWindow : Window
 
     private double ExpandedHeight()
     {
-        var rows = Math.Max(1, _model.Sessions.Count);
+        var content = _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight;
         // Leave room inside the window for the open motion's slight overshoot.
-        return Math.Min(ExpandedChrome + rows * RowHeight, Height - 12);
+        return Math.Min(ExpandedChrome + content, Height - 12);
     }
 
     /// <summary>

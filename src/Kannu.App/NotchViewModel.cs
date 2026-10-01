@@ -46,6 +46,9 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>The session list was rebuilt (the expanded notch may need a new height).</summary>
     public event Action? SessionsChanged;
 
+    /// <summary>Token totals per chat from the last reader pass (Claude only).</summary>
+    public IReadOnlyDictionary<string, TurnTokens> Tokens { get; set; } = new Dictionary<string, TurnTokens>();
+
     public void Update(PipelineResult result)
     {
         var sessions = result.Sessions;
@@ -56,7 +59,7 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         Dots.Clear();
         foreach (var session in sessions)
         {
-            var row = new SessionRow(session, nowMs);
+            var row = new SessionRow(session, nowMs, Tokens.TryGetValue(session.ConversationId, out var t) ? t : null);
             Sessions.Add(row);
             if (Dots.Count < MaxDots) Dots.Add(row);
         }
@@ -106,8 +109,9 @@ internal sealed class SessionRow
     private static readonly Brush Red = KannuColors.Brush(KannuColors.Red);
     private static readonly Brush Dim = KannuColors.Brush(KannuColors.Dim);
 
-    public SessionRow(AgentSession session, long nowMs)
+    public SessionRow(AgentSession session, long nowMs, TurnTokens? tokens)
     {
+        Icon = ProviderIcons.For(session.Provider);
         // The chat's title when it has a real one, else its project: never "Untitled chat" when
         // something better is known.
         Title = AgentStateMachine.HasReliableChatName(session.ChatName) ? session.DisplayChatName
@@ -130,12 +134,16 @@ internal sealed class SessionRow
                 break;
         }
         if (TurnDisplay.Tools(session.Turn?.ToolCalls ?? 0) is { } tools) parts.Add(tools);
+        // Tokens only when they belong to this card's own request.
+        if (tokens is not null && session.Turn is { } turn && tokens.StartedMs == turn.StartedMs
+            && tokens.StartOffset == turn.TranscriptOffset) parts.Add(tokens.Text);
         Detail = string.Join(" · ", parts);
     }
 
     public string Title { get; }
     public string Detail { get; }
     public Brush Brush { get; }
+    public ImageSource Icon { get; }
 
     private static string StateText(AgentSession session) => session.DisplayState switch
     {

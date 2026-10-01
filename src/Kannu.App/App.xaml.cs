@@ -48,7 +48,7 @@ public partial class App : Application
             if (args.PropertyName == nameof(NotchViewModel.Summary)) _tray.SetSummary(model.Summary);
         };
 
-        _monitor = new StatusMonitor(statusDirectory, model.Update);
+        _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         notch.Show();
         _monitor.Start();
     }

@@ -4,6 +4,20 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-01 - Agent cards show the agent's icon, run time, tools and tokens
+- **Developer label:** "go" (Phase 1 of the parity plan: notch agent UI parity)
+- **Agent label:** Port of AgentProviderIconView's sources and ClaudeTurnTokens; two-line cards
+- **Changes:**
+  - Each card shows the agent's own app icon (found at its usual Windows install location, else
+    from a running copy), or a coloured initial for terminal agents in macOS's symbol colours.
+    Resolved once per agent and kept ten minutes.
+  - `ClaudeTurnTokens`: a Claude request's tokens ("1.4M in · 45k out"), read forward from the
+    transcript offset the hook recorded at the turn's start plus the turn's subagent transcripts,
+    deduplicated per message, within a budget per pass, shown only once caught up, never reading
+    outside `~/.claude/projects` or through a link, and only token counts. Read off the UI thread.
+  - Cards are two lines: the chat title, then agent · state · run time · tools · tokens.
+  - 311 tests.
+
 ### 2026-10-01 - Warp, Claude Desktop agent mode and named Codex chats on the notch
 - **Developer label:** "go" (Phase 1 of the parity plan: the remaining passive sources)
 - **Agent label:** Ports of WarpAgentStore and ClaudeDesktopAgentSessionStore; Codex names from its logs
