@@ -98,3 +98,18 @@ jobs:
             --releaseName "Kannu for Windows ${{ steps.release.outputs.version }} — ${{ steps.release.outputs.codename }}" `
             ${{ steps.release.outputs.pre }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # A release first created on GitHub's Releases page keeps the text typed there; vpk --merge only
+      # adds files. Set the title and notes here so every release reads the same.
+      - name: Set the release title and notes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = '${{ steps.release.outputs.version }}'
+          $notes = "docs/release-notes/$($version -replace '-.*$', '').md"
+          $edit = @('release', 'edit', '${{ github.ref_name }}', '--repo', '${{ github.repository }}',
+            '--title', "Kannu for Windows $version — ${{ steps.release.outputs.codename }}")
+          if (Test-Path $notes) { $edit += '--notes-file', $notes }
+          gh @edit
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

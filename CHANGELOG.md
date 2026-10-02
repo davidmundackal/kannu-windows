@@ -4,6 +4,14 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - Every release shows its notes, however it was created
+- **Developer label:** "The release page only says \"Full Changelog\", not the release notes ... do"
+- **Agent label:** release.yml sets the title and body from docs/release-notes after uploading
+- **Changes:**
+  - A release made on GitHub's Releases page kept the text typed there, because `vpk upload --merge`
+    only adds files. The workflow now runs `gh release edit` with the title and
+    `docs/release-notes/<version>.md` after the upload.
+
 ### 2026-10-02 - The release build passes its version through, and CI proves it
 - **Developer label:** "i pushed on publish release why is it not showing up, please check"
 - **Agent label:** Fix the argument splatting that failed the first release run; CI runs the versioned publish path
