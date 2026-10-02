@@ -47,7 +47,7 @@ No installer wanted? `Kannu-win-Portable.zip` on the same release page runs from
 
 ## Build and run
 
-Requirements: Windows 10/11, the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+Requirements: Windows 10/11, the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```powershell
 ./scripts/publish.ps1          # builds Kannu.exe + kannu-hook.exe into out/win-x64

@@ -4,6 +4,20 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - Kannu runs on .NET 10, with a patched SQLite and English-only framework messages
+- **Developer label:** "My recommendation: keep .NET built in, move Kannu to .NET 10 (supported until November 2028), and remove the unused translation files. ok do this"
+- **Agent label:** Retarget every project to .NET 10 LTS, bump Microsoft.Data.Sqlite past a known SQLite vulnerability, drop WPF/WinForms satellite resources
+- **Changes:**
+  - All projects target `net10.0` / `net10.0-windows`; CI and the release workflow use the .NET 10
+    SDK. .NET 8 leaves Microsoft support on 10 November 2026; .NET 10 is supported to November 2028.
+  - `Microsoft.Data.Sqlite` 8.0.11 to 10.0.12: its native SQLite (`SQLitePCLRaw.lib.e_sqlite3`
+    2.1.6) had a known high-severity vulnerability (GHSA-2m69-gcr7-jv3q), now 2.1.12.
+  - `SatelliteResourceLanguages=en`: WPF's and WinForms' own messages ship in English only. The
+    installer is about 79 MB (81 MB before).
+  - `WFO0003` joins `WFAC010` in NoWarn: the same WinForms DPI advice, renamed in .NET 10; Kannu is
+    a WPF app whose DPI awareness is in its manifest.
+  - README and AGENTS.md name the .NET 10 SDK.
+
 ### 2026-10-02 - Installing Kannu no longer runs a separate .NET installer
 - **Developer label:** "there were some erros, and it asked to install somne additional package .net" / "desktop runtime some installer"
 - **Agent label:** Publish the app self-contained so setup never installs the .NET Desktop Runtime

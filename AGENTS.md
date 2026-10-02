@@ -19,7 +19,7 @@ simplest native API over a framework or dependency.
 
 ## Architecture rules
 
-1. **Core stays pure.** `src/Kannu.Core` targets `net8.0` with no Windows APIs, is AOT-compatible, and
+1. **Core stays pure.** `src/Kannu.Core` targets `net10.0` with no Windows APIs, is AOT-compatible, and
    holds every decision worth testing: event mapping, the race merge, the age ladder, status file IO and
    the settings.json transform. The hook and the app are thin shells over it.
 2. **The view never touches disk.** `StatusMonitor` reads; `NotchViewModel` holds state; XAML binds.

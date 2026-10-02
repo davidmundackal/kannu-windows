@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <!-- Only for the tray icon (NotifyIcon); WPF has none of its own. -->
     <UseWindowsForms>true</UseWindowsForms>
@@ -12,14 +12,18 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <!--
-      WFAC010 asks WinForms apps to set DPI mode in code. This is a WPF app (WinForms is only the tray
+      WFAC010 (WFO0003 from .NET 10) asks WinForms apps to set DPI mode in code. This is a WPF app (WinForms is only the tray
       icon), and WPF reads its per-monitor DPI awareness from the manifest.
     -->
-    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+    <NoWarn>$(NoWarn);WFAC010;WFO0003</NoWarn>
     <ApplicationIcon>..\..\assets\Kannu.ico</ApplicationIcon>
     <AssemblyName>Kannu</AssemblyName>
     <RootNamespace>Kannu.App</RootNamespace>
     <!-- Program.Main, not the one WPF generates: Velopack's install, update and uninstall hooks run first. -->
+    <!-- WPF's and WinForms' own messages in English only (about 5 MB less to download). Kannu's own
+         translations live in its resources and are not affected; add a language here to bring its
+         framework messages back. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <StartupObject>Kannu.App.Program</StartupObject>
   </PropertyGroup>
 
