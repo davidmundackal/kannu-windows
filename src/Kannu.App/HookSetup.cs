@@ -60,6 +60,7 @@ internal static class HookSetup
         Directory.CreateDirectory(Path.GetDirectoryName(Installer.HookExePath)!);
         CopyWithRetry(BundledHookPath, Installer.HookExePath);
         Installer.Install(provider);
+        Diagnostics.Info($"Installed the {provider.Id()} hook");
         return $"{provider.DisplayName()} hooks installed. New sessions will show on the notch.";
     }
 
@@ -67,6 +68,7 @@ internal static class HookSetup
     public static string Uninstall(AgentProvider provider)
     {
         Installer.Uninstall(provider);
+        Diagnostics.Info($"Removed the {provider.Id()} hook");
         return $"{provider.DisplayName()} hooks removed.";
     }
 

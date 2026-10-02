@@ -35,6 +35,12 @@
                 </StackPanel>
             </StackPanel>
             <ListBox x:Name="Nav" Style="{StaticResource Kannu.NavList}" SelectionChanged="Nav_SelectionChanged">
+                <ListBoxItem Tag="General">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE713;" Margin="0,0,14,0" />
+                        <TextBlock Text="General" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
                 <ListBoxItem Tag="Notch">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7F4;" Margin="0,0,14,0" />
@@ -59,8 +65,29 @@
         <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Focusable="False">
             <Grid Margin="24,20,40,32" MaxWidth="1000" HorizontalAlignment="Stretch">
 
+                <!-- General -->
+                <StackPanel x:Name="GeneralPage" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="General" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7E8;" Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Start Kannu when you sign in" />
+                                <TextBlock x:Name="LoginDescription" Style="{StaticResource Kannu.RowDescription}"
+                                           Text="Kannu starts quietly in the background so the notch is ready when your agents are." />
+                            </StackPanel>
+                            <CheckBox x:Name="LoginToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Login_Click" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
                 <!-- Notch -->
-                <StackPanel x:Name="NotchPage">
+                <StackPanel x:Name="NotchPage" Visibility="Collapsed">
                     <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Notch" />
 
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Shape" Margin="0,0,0,8" />
@@ -234,6 +261,25 @@
                     </Border>
 
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Help" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE9F9;" Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Logs" />
+                                <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                           Text="Save Kannu's logs and problem reports in a zip to attach to an issue. Your user name, PC name and profile folder are taken out first." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button Style="{StaticResource Kannu.Button}" Content="Open folder" Margin="0,0,8,0" Click="OpenLogs_Click" />
+                                <Button Style="{StaticResource Kannu.Button}" Content="Export…" Click="ExportLogs_Click" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource Kannu.Card}">
                         <StackPanel>
                             <Button Style="{StaticResource Kannu.LinkButton}" Content="Source code on GitHub" Tag="repo" Click="Link_Click"

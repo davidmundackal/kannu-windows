@@ -26,6 +26,7 @@ public partial class App : Application
     private StatusMonitor? _monitor;
     private TrayIcon? _tray;
     private UpdateService? _updates;
+    private FreezeWatchdog? _watchdog;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -37,6 +38,10 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Local diagnostics only (nothing is sent), so they run before the Terms gate, as on macOS.
+        _watchdog = new FreezeWatchdog(Dispatcher);
+        _watchdog.Start();
 
         ThemeManager.Initialize(this);
         var settings = new SettingsStore(AppSettings.DefaultPath());
@@ -57,6 +62,7 @@ public partial class App : Application
 
     private void ContinueLaunch(SettingsStore settings)
     {
+        LaunchAtLoginManager.EnsureDefault(settings);
         var statusDirectory = StatusPaths.DefaultStatusDirectory();
         Directory.CreateDirectory(statusDirectory);
 
@@ -77,11 +83,21 @@ public partial class App : Application
         notch.Show();
         _monitor.Start();
         _updates.Start();
+
+        // macOS offers the last crash a few seconds after launch, once everything is up.
+        var offer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        offer.Tick += (_, _) =>
+        {
+            offer.Stop();
+            ProblemReportWindow.OfferIfAny(settings);
+        };
+        offer.Start();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _monitor?.Dispose();
+        _watchdog?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();

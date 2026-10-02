@@ -63,7 +63,7 @@ public partial class SettingsWindow : Window
     }
 
     /// <summary>Opens Settings on a page ("Notch", "Agents", "About"), or brings the open window forward.</summary>
-    internal static void Open(SettingsStore settings, UpdateService updates, string statusDirectory, string page = "Notch")
+    internal static void Open(SettingsStore settings, UpdateService updates, string statusDirectory, string page = "General")
     {
         if (_open is { } window)
         {
@@ -87,11 +87,37 @@ public partial class SettingsWindow : Window
 
     private void Nav_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var page = (Nav.SelectedItem as ListBoxItem)?.Tag as string ?? "Notch";
+        var page = (Nav.SelectedItem as ListBoxItem)?.Tag as string ?? "General";
+        GeneralPage.Visibility = page == "General" ? Visibility.Visible : Visibility.Collapsed;
+        if (page == "General") LoadLogin();
         NotchPage.Visibility = page == "Notch" ? Visibility.Visible : Visibility.Collapsed;
         AgentsPage.Visibility = page == "Agents" ? Visibility.Visible : Visibility.Collapsed;
         AboutPage.Visibility = page == "About" ? Visibility.Visible : Visibility.Collapsed;
         if (page == "Agents") BuildAgentRows();
+    }
+
+    // ---- General ----
+
+    private void LoadLogin()
+    {
+        if (LaunchAtLoginManager.StablePath is null)
+        {
+            LoginToggle.IsChecked = false;
+            LoginToggle.IsEnabled = false;
+            LoginDescription.Text = "Available when Kannu is installed with its installer.";
+            return;
+        }
+        LoginToggle.IsEnabled = true;
+        LoginToggle.IsChecked = LaunchAtLoginManager.IsEnabled;
+        LoginDescription.Text = LaunchAtLoginManager.DisabledInTaskManager
+            ? "Turned off in Task Manager › Startup apps. Turning it on here turns it back on."
+            : "Kannu starts quietly in the background so the notch is ready when your agents are.";
+    }
+
+    private void Login_Click(object sender, RoutedEventArgs e)
+    {
+        LaunchAtLoginManager.Set(LoginToggle.IsChecked == true);
+        LoadLogin();
     }
 
     // ---- Notch ----
@@ -211,6 +237,34 @@ public partial class SettingsWindow : Window
         CheckUpdatesButton.IsEnabled = true;
     }
 
+    private void OpenLogs_Click(object sender, RoutedEventArgs e)
+    {
+        Directory.CreateDirectory(Diagnostics.LogsDirectory);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{Diagnostics.LogsDirectory}\"") { UseShellExecute = true });
+    }
+
+    private void ExportLogs_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = $"kannu-logs-{DateTime.Now:yyyyMMdd-HHmm}.zip",
+            DefaultExt = ".zip",
+            Filter = "Zip archive (*.zip)|*.zip",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            if (File.Exists(dialog.FileName)) File.Delete(dialog.FileName);
+            Diagnostics.ExportLogs(dialog.FileName);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{dialog.FileName}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, ex.Message, "Kannu", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void ViewTerms_Click(object sender, RoutedEventArgs e) => TermsWindow.ShowTerms(this);
 
     private void Link_Click(object sender, RoutedEventArgs e)
@@ -218,7 +272,7 @@ public partial class SettingsWindow : Window
         var url = ((FrameworkElement)sender).Tag switch
         {
             "license" => ReleaseInfo.RepositoryUrl + "/blob/main/LICENSE",
-            "issue" => ReleaseInfo.RepositoryUrl + "/issues/new",
+            "issue" => Diagnostics.NewIssueUrl(),
             "security" => ReleaseInfo.RepositoryUrl + "/security/advisories/new",
             _ => ReleaseInfo.RepositoryUrl,
         };

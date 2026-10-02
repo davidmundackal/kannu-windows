@@ -4,6 +4,25 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - Crash and freeze reports, exportable logs, and starting at sign-in
+- **Developer label:** "now do we also have crash report function like the mac version" / "these are crtitical features and needs help"
+- **Agent label:** Ports of macOS CrashReporter, HangWatchdog, DiagnosticScrub, Export Logs and launch at login
+- **Changes:**
+  - `ProblemReports` (Core): report file names, the one-to-offer choice (newest unoffered; a freeze
+    beats a crash at the same moment), the scrub (profile folder, user name, PC name, any case,
+    whole words), crash and freeze texts, and GitHub issue links cut to fit.
+  - `FreezeDetector` (Core): a ping answered within 5 s is fine, an unanswered one is one freeze,
+    and a gap of more than three intervals is a sleep, not a freeze.
+  - Unhandled exceptions (AppDomain and Dispatcher) write a scrubbed `crash-<utc>.txt`; a watchdog
+    thread writes `freeze-<utc>.txt` plus a memory dump (newest only). Both are offered once, 4 s
+    after the next launch, in a window that shows exactly what would be shared.
+  - `kannu.log` (1 MB, one rollover) records start-up, hook installs, update-check failures and
+    crashes, never agent content. Settings › About › Logs: Open folder, Export… (scrubbed zip,
+    dumps left out). "Report a problem" pre-fills Kannu's and Windows' versions.
+  - Start at sign-in: on once for a fresh install, pointed at Velopack's stable launcher, repaired if
+    stale, removed on uninstall; Settings › General, which also says when Task Manager turned it off.
+  - 363 tests.
+
 ### 2026-10-02 - Kannu runs on .NET 10, with a patched SQLite and English-only framework messages
 - **Developer label:** "My recommendation: keep .NET built in, move Kannu to .NET 10 (supported until November 2028), and remove the unused translation files. ok do this"
 - **Agent label:** Retarget every project to .NET 10 LTS, bump Microsoft.Data.Sqlite past a known SQLite vulnerability, drop WPF/WinForms satellite resources

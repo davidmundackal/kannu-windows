@@ -33,6 +33,31 @@ internal static class NativeMethods
         SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(style | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE));
     }
 
+    // MiniDumpWithPrivateReadWriteMemory | MiniDumpWithThreadInfo | MiniDumpWithDataSegs: enough heap
+    // for a .NET debugger to rebuild the managed stacks of a frozen UI thread.
+    private const int MiniDumpType = 0x200 | 0x1000 | 0x1;
+
+    /// <summary>A memory dump of this process, for a freeze report. False if it could not be written.</summary>
+    public static bool WriteMiniDump(string path)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetCurrentProcess();
+            using var file = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write);
+            return MiniDumpWriteDump(process.Handle, (uint)process.Id, file.SafeFileHandle.DangerousGetHandle(),
+                MiniDumpType, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+    }
+
+    [DllImport("dbghelp.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool MiniDumpWriteDump(IntPtr process, uint processId, IntPtr file, int dumpType,
+        IntPtr exceptionParam, IntPtr userStreamParam, IntPtr callbackParam);
+
     private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
 
     /// <summary>Dark title bar; harmless where the attribute is unknown.</summary>

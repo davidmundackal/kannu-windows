@@ -88,6 +88,7 @@ internal sealed class UpdateService : IDisposable
         // types; none of them may take the notch down, and the next daily check tries again.
         catch (Exception e)
         {
+            Diagnostics.Error("Update check failed", e);
             return $"Could not check for updates: {e.Message}";
         }
         finally

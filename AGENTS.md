@@ -62,6 +62,10 @@ then calls `ContinueLaunch`, which starts the watcher, notch, tray and updater. 
 `ContinueLaunch`. Raising `TermsOfUse.CurrentVersion` asks everyone again; change the "Version" line
 in `TERMS.md` with it (a test pins the two).
 
+`Diagnostics` writes Kannu's log and crash reports to `%LOCALAPPDATA%\Kannu\logs`. Log events, never
+agent conversations, prompts, file contents or credentials, and pass anything that may leave the PC
+through `Diagnostics.Scrub`.
+
 What is ported from macOS Kannu, what is not, and why: `docs/PARITY.md`. A PR that ships, drops or
 reroutes a feature updates its row in the same commit.
 

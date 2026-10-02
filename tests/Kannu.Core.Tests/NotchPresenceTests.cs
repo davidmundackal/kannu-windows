@@ -259,6 +259,8 @@ public sealed class AppSettingsTests : IDisposable
             HideUntilActivity = false,
             RevealOnTopEdge = true,
             OpenOnHover = false,
+            LaunchAtLoginInitialized = true,
+            LastOfferedReport = "crash-20261002T080000Z.txt",
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
         settings.Save(File);
         var loaded = AppSettings.Load(File);

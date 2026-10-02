@@ -102,15 +102,15 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | **Settings window** (21 tabs, search across 208 entries, scroll-to-highlight) | Kannu | **Partial** | Windows 11 style (nav pane, cards, toggle switches, light/dark and accent from Windows): Notch, Agents (hook install/remove per agent) and About pages. More pages, and search, come with their features |
 | **Onboarding** (profile presets, light style, caffeinate) | Atoll + Kannu | **Doable** | |
 | **Terms of Use gate**: nothing runs before acceptance; the updater starts after it | Kannu | **Done** | Windows edition of the terms (`TERMS.md`, D8). `App.OnStartup` shows them before the watcher, notch, tray or updater start; Decline quits |
-| Launch at login (on by default, repairs a stale entry) | Kannu | **Doable** | HKCU `Run` value pointing at Velopack's stable path |
+| Launch at login (on by default, repairs a stale entry) | Kannu | **Done** | HKCU `Run` value pointing at Velopack's stable launcher; on once for a fresh install, repaired if stale, removed on uninstall; Settings › General shows when Task Manager turned it off. Not offered in developer/portable builds |
 | Global shortcuts (toggle notch, etc.; off by default) | Kannu/Atoll | **Doable** | `RegisterHotKey` |
 | Localization (17 languages in `Localizable.xcstrings`) | Atoll + Kannu | **Doable** | Convert the xcstrings to `.resx` and reuse the translations for shared strings |
 | Auto-update | Kannu | **Done** | Velopack. macOS uses Sparkle |
 | Installer / release workflow / codename / release notes | Kannu | **Done** | `Kannu-win-Setup.exe`, tag-driven `release.yml` |
-| Crash reporter: offer the last crash, prefilled GitHub issue, redaction | Kannu | **Doable** | `AppDomain`/`Dispatcher` unhandled-exception handlers, the run-marker idea, WER LocalDumps. Issues go to davidmundackal/kannu-windows |
-| Hang watchdog (stack of the stuck main thread) | Kannu | **Doable, different** | .NET cannot walk another thread's stack in-process cleanly. Write a minidump (`MiniDumpWriteDump`) after 5 s unresponsive and offer it |
+| Crash reporter: offer the last crash, prefilled GitHub issue, redaction | Kannu | **Done** | `AppDomain`/`Dispatcher` unhandled-exception handlers write `crash-<utc>.txt`; offered 4 s after the next launch with the scrubbed text shown, "Report on GitHub" (pre-filled issue, cut to fit), "Copy report", "Show in folder"; Settings › About › Report a problem pre-fills version and Windows |
+| Hang watchdog (stack of the stuck main thread) | Kannu | **Done, different** | A background thread pings the UI thread every second; 5 s without an answer writes `freeze-<utc>.txt` and a memory dump (`MiniDumpWriteDump`, newest only), offered like a crash. A sleep is not a freeze. The dump replaces macOS's in-process stack walk and is never put in a public issue |
 | Memory monitor (restart prompt above 1 GB) | Atoll | **Doable** | Small |
-| Export logs / log level | Kannu | **Doable** | File logging under `%LOCALAPPDATA%\Kannu\logs`; zip export |
+| Export logs / log level | Kannu | **Done** (no log level) | `%LOCALAPPDATA%\Kannu\logs\kannu.log` (1 MB, one rollover); Settings › About › Logs: Open folder, Export… (zip of logs and reports, scrubbed, dumps left out) |
 | Restart Kannu, Quit row in Settings | Kannu | **Doable** | Small |
 
 ## 6. Inherited utilities (Atoll lineage)

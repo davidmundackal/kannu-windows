@@ -27,7 +27,8 @@ This is a beta. Things will be rough in places, and your reports are what makes 
 5. Kannu's eye appears in the notification area of the taskbar (you may need to click the **^**
    arrow to see it, and can drag it next to the clock). The notch itself stays hidden until
    something happens.
-6. Right-click the eye, choose **Settings…**, open **Agents**, and click **Install** next to each
+6. Kannu starts with Windows from now on (Settings › General turns that off). Right-click the eye,
+   choose **Settings…**, open **Agents**, and click **Install** next to each
    agent you use. Restart that agent (or start a new session) so it picks the hook up.
 
 Claude Code, Cursor, Warp and Claude Desktop also show up without the hook, with less detail.
@@ -77,6 +78,11 @@ menu checks right away.
 
 ## Reporting a problem
 
+If Kannu crashes or freezes, it offers a report the next time it starts. It shows exactly what would be
+shared (with your user name, PC name and profile folder taken out); click **Report on GitHub** to send
+it. For anything else, Settings › About › **Report a problem** opens an issue with your Kannu and
+Windows versions filled in, and **Logs › Export…** saves logs you can attach.
+
 Open an issue at https://github.com/davidmundackal/kannu-windows/issues/new and include:
 
 - your Windows version (Settings › System › About, "Edition" and "Version");
@@ -96,6 +102,7 @@ https://github.com/davidmundackal/kannu-windows/security/advisories/new
 | Your settings | `%APPDATA%\Kannu\settings.json` |
 | Agent status files | `%USERPROFILE%\.kannu\agent-status` |
 | The hook agents run | `%LOCALAPPDATA%\Kannu\bin\kannu-hook.exe` |
+| Logs and problem reports | `%LOCALAPPDATA%\Kannu\logs` |
 
 When Kannu adds its hook to an agent's settings file, it keeps the previous version beside it as
 `<name>.kannu-backup`.

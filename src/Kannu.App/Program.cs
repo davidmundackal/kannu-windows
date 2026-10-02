@@ -31,10 +31,15 @@ internal static class Program
         VelopackApp.Build()
             .OnAfterInstallFastCallback(_ => HookSetup.AfterInstallOrUpdate())
             .OnAfterUpdateFastCallback(_ => HookSetup.AfterInstallOrUpdate())
-            .OnBeforeUninstallFastCallback(_ => HookSetup.BeforeUninstall())
+            .OnBeforeUninstallFastCallback(_ =>
+            {
+                HookSetup.BeforeUninstall();
+                LaunchAtLoginManager.Remove();
+            })
             .Run();
 
         var app = new App();
+        Diagnostics.InstallCrashHandlers(app);
         app.InitializeComponent();
         app.Run();
     }
