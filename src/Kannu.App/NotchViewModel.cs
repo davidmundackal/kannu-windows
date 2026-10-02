@@ -46,12 +46,27 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>The session list was rebuilt (the expanded notch may need a new height).</summary>
     public event Action? SessionsChanged;
 
+    /// <summary>An agent's light said something new (<see cref="AgentActivity.IsRevealWorthy"/>): reveal a hidden notch.</summary>
+    public event Action? Activity;
+
+    /// <summary>
+    /// The open notch's tabs. Agents is the only one on Windows so far; Usage and the other macOS tabs
+    /// join as their features are ported (docs/PARITY.md).
+    /// </summary>
+    public IReadOnlyList<NotchTab> Tabs { get; } = [new("agents", "Agents", "\uE99A") { IsSelected = true }];
+
+    public NotchTab SelectedTab => Tabs.FirstOrDefault(t => t.IsSelected) ?? Tabs[0];
+
+    private IReadOnlyList<AgentSession> _previous = [];
+
     /// <summary>Token totals per chat from the last reader pass (Claude only).</summary>
     public IReadOnlyDictionary<string, TurnTokens> Tokens { get; set; } = new Dictionary<string, TurnTokens>();
 
     public void Update(PipelineResult result)
     {
         var sessions = result.Sessions;
+        var reveal = AgentActivity.IsRevealWorthy(_previous, sessions);
+        _previous = sessions;
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var countChanged = sessions.Count != Sessions.Count;
 
@@ -80,6 +95,7 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         }
 
         if (countChanged) SessionsChanged?.Invoke();
+        if (reveal) Activity?.Invoke();
     }
 
     private static string Summarise(IReadOnlyList<AgentSession> sessions)
@@ -99,6 +115,29 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     {
         public const string NoAgents = "No agents";
     }
+}
+
+/// <summary>A tab of the open notch: an icon-only button, its name in the tooltip and the header.</summary>
+internal sealed class NotchTab(string id, string label, string glyph) : INotifyPropertyChanged
+{
+    private bool _isSelected;
+
+    public string Id { get; } = id;
+    public string Label { get; } = label;
+    public string Glyph { get; } = glyph;
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set
+        {
+            if (_isSelected == value) return;
+            _isSelected = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsSelected)));
+        }
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 }
 
 /// <summary>One card. Immutable: a status change rebuilds the row.</summary>

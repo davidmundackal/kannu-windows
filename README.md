@@ -7,7 +7,12 @@ coding agents are doing, so you don't have to switch back to the terminal to fin
 - 🟡 Yellow: the agent needs you
 - 🔴 Red: the agent finished or stopped
 
-Hover the notch to open it and see every session. It never takes focus from your editor.
+The notch stays out of sight until something happens: when an agent starts, needs you or finishes,
+it slides down from the top of the screen for a few seconds, then hides again. Click the Kannu eye in
+the taskbar to open it any time; while it is on screen, hover it to see every session. It never takes
+focus from your editor. Settings (the gear in the open notch, or right-click the eye) has the
+Floating pill shape, an always-visible mode, and an opt-in reveal by resting the pointer at the top
+of the screen.
 
 This is the Windows companion to [Kannu for macOS](https://github.com/libinmv/kannu). Both read the
 same status files ([docs/STATUS_CONTRACT.md](docs/STATUS_CONTRACT.md)).
@@ -25,8 +30,9 @@ Antigravity, Gemini CLI, Qwen Code and opencode**.
    protected your PC"*: click **More info**, then **Run anyway**.
 3. Kannu installs for your user only (no administrator prompt) into `%LOCALAPPDATA%\Kannu`, adds a
    Start-menu entry, installs the .NET 8 Desktop Runtime if it is missing, and starts. The eye appears
-   in the notification area and the notch at the top of your screen.
-4. Right-click the eye, open **Agent hooks** and tick each agent you use.
+   in the notification area; the notch stays hidden until an agent does something.
+4. Accept the Terms of Use, then open **Settings › Agents** (right-click the eye) and install the
+   hook for each agent you use.
 
 Updates install themselves: Kannu checks its GitHub Releases at launch and once a day, downloads in the
 background and applies the update the next time it starts (or right away from **Restart to Update** in
@@ -50,7 +56,8 @@ Requirements: Windows 10/11, the [.NET 8 SDK](https://dotnet.microsoft.com/downl
 A build run from `out/` does not update itself; only an installed copy does. Releases are cut from tags:
 [scripts/RELEASE.md](scripts/RELEASE.md).
 
-Then right-click the tray eye, open **Agent hooks** and tick each agent you use. New sessions show up
+Then accept the Terms of Use and install each agent's hook from **Settings › Agents** (right-click the
+tray eye; **Agent hooks** in that menu does the same). New sessions show up
 on the notch.
 
 What installing does:

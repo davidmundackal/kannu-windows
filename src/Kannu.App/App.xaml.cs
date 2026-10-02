@@ -12,6 +12,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If
 // not, see <https://www.gnu.org/licenses/>.
 
+using System;
 using System.IO;
 using System.Threading;
 using System.Windows;
@@ -37,13 +38,35 @@ public partial class App : Application
             return;
         }
 
+        ThemeManager.Initialize(this);
+        var settings = new SettingsStore(AppSettings.DefaultPath());
+
+        // Nothing starts before the Terms of Use are accepted: no watcher, no notch, no tray, no
+        // updater (macOS Kannu's continueLaunch rule). New launch work goes in ContinueLaunch.
+        if (TermsOfUse.NeedsAcceptance(settings.Current))
+        {
+            if (!TermsWindow.AskForAcceptance())
+            {
+                Shutdown();
+                return;
+            }
+            settings.Update(s => TermsOfUse.Accepted(s, DateTimeOffset.UtcNow));
+        }
+        ContinueLaunch(settings);
+    }
+
+    private void ContinueLaunch(SettingsStore settings)
+    {
         var statusDirectory = StatusPaths.DefaultStatusDirectory();
         Directory.CreateDirectory(statusDirectory);
 
         var model = new NotchViewModel();
-        var notch = new NotchWindow(model);
+        var notch = new NotchWindow(model, settings);
         _updates = new UpdateService();
-        _tray = new TrayIcon(notch, statusDirectory, _updates, Shutdown);
+        var updates = _updates;
+        void OpenSettings() => SettingsWindow.Open(settings, updates, statusDirectory);
+        notch.SettingsRequested += OpenSettings;
+        _tray = new TrayIcon(notch.ToggleFromTray, OpenSettings, statusDirectory, _updates, Shutdown);
         model.AggregateChanged += _tray.SetLight;
         model.PropertyChanged += (_, args) =>
         {
@@ -53,8 +76,6 @@ public partial class App : Application
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         notch.Show();
         _monitor.Start();
-        // macOS starts its updater only after the Terms of Use are accepted; once Kannu for Windows has
-        // that gate, this line moves behind it.
         _updates.Start();
     }
 

@@ -33,19 +33,75 @@
                 </StackPanel>
             </Grid>
         </DataTemplate>
+        <!-- Open-notch header buttons: icon-only 26 px circles, as on macOS (TabButton.swift). -->
+        <Style x:Key="TabButton" TargetType="RadioButton">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Face" CornerRadius="13" Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                            <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="#E6FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#1AFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#26FFFFFF" />
+                                <Setter TargetName="Face" Property="BorderBrush" Value="#2EFFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HeaderButton" TargetType="Button">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Face" CornerRadius="13" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#1AFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#26FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
+    <!--
+      The pill slides out of view above the top edge while the notch is hidden (PillShift), and is then
+      neither visible nor hit-testable, so it never blocks a click.
+    -->
     <Border x:Name="Pill"
             HorizontalAlignment="Center" VerticalAlignment="Top"
             Width="200" Height="32"
-            CornerRadius="0,0,16,16"
+            CornerRadius="0,0,14,14"
             Background="#F2121214" BorderBrush="#22FFFFFF" BorderThickness="1,0,1,1"
-            ClipToBounds="True"
+            ClipToBounds="True" Opacity="0" IsHitTestVisible="False"
             MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="PillShift" Y="-60" />
+        </Border.RenderTransform>
         <Grid>
-            <!-- Collapsed row; stays as the header when expanded. -->
-            <StackPanel Height="32" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
-                <!-- Kannu's eye while nothing is running, as in the macOS menu bar. -->
+            <!-- Closed: Kannu's eye while nothing runs, else one dot per session and a summary. -->
+            <StackPanel x:Name="CollapsedRow" Height="32" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center" Text="&#xE890;" FontSize="14" Foreground="#D9FFFFFF"
                            FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets">
                     <TextBlock.Style>
@@ -71,20 +127,46 @@
                            TextTrimming="CharacterEllipsis" />
             </StackPanel>
 
-            <StackPanel x:Name="ExpandedContent" Margin="16,36,16,12" VerticalAlignment="Top"
+            <!-- Open: tabs and the gear, then the selected tab's content. -->
+            <StackPanel x:Name="ExpandedContent" Margin="16,10,16,12" VerticalAlignment="Top"
                         Opacity="0" IsHitTestVisible="False">
-                <ItemsControl Focusable="False" ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource RowTemplate}" />
-                <TextBlock Height="30" Text="Start an agent to see it here." Foreground="#99FFFFFF" FontSize="12">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasSessions}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <Grid Height="30" Margin="0,0,0,6">
+                    <ItemsControl ItemsSource="{Binding Tabs}" Focusable="False" HorizontalAlignment="Left">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Style="{StaticResource TabButton}" GroupName="NotchTabs" ToolTip="{Binding Label}"
+                                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                             MouseEnter="Tab_MouseEnter" MouseLeave="Tab_MouseLeave" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding SelectedTab.Label}" Foreground="#D9FFFFFF" FontSize="12" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource HeaderButton}" HorizontalAlignment="Right" ToolTip="Settings"
+                            Click="Settings_Click">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="#E6FFFFFF" />
+                    </Button>
+                </Grid>
+
+                <StackPanel x:Name="AgentsTab">
+                    <ItemsControl Focusable="False" ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource RowTemplate}" />
+                    <TextBlock Height="30" Text="Start an agent to see it here." Foreground="#99FFFFFF" FontSize="12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>

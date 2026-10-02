@@ -4,6 +4,30 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - A hidden notch that comes out when agents change, a Windows Settings window, and the Terms gate
+- **Developer label:** "what we want is a floating pill option but by default hidden and a notch appears like when a state changes like we have in mac app ... clicking our kannu icon in bar reveals notch and our different tabs, see if hover can still work as usual once notch is shown, but when its closed do not reveal if pointed near notch, atleast not by default, users can switch that option on in settings, make settings look a bit nice for windows users"; "8 write windows version"
+- **Agent label:** Port of macOS Kannu's hide-until-hover reveal rules, a Windows 11 style Settings window, and a Windows edition of the Terms of Use with its launch gate
+- **Changes:**
+  - `NotchPresence` (Core): the notch is hidden by default and comes out for 7 s when an agent's
+    light changes (macOS `notchRevealHoldSeconds`), stays while the pointer is on it, lingers 7 s
+    after it leaves; the tray eye opens it and closes it after 3 s unless the pointer is on it.
+    `AgentActivity.IsRevealWorthy`: a chat appearing lit or a light turning green, yellow or red
+    reveals; thinking/executing, tool calls, dimming and chats going away do not.
+  - Notch: slides in and out from above the top edge (snaps with animation effects off), never
+    blocks clicks while hidden; Notch or Floating pill shape (macOS radii and 6 px offset); the open
+    notch has icon-only round tabs (Agents for now) and a Settings gear.
+  - Opt-in top-edge reveal: a 20 Hz cursor check that runs only while hidden and enabled, with a 1 s
+    dwell in macOS's entry zone.
+  - Tray: left click opens the notch; menu gains Open Kannu and Settings…; "Show notch" is gone.
+  - Settings window in the Windows 11 style (navigation pane, cards, toggle switches, light/dark
+    and accent colour from Windows, dark title bar): Notch (shape, hidden until something happens,
+    top-edge reveal, open on hover), Agents (install or remove each agent's hook), About (version,
+    updates, Terms, licence, links). `AppSettings` in `%APPDATA%\Kannu\settings.json`.
+  - `TERMS.md`: a Windows edition of the Terms of Use (version 1). Nothing starts until it is
+    accepted; Decline quits (`TermsOfUse`, `MarkdownLite` renders it).
+  - `docs/PARITY.md`, README and AGENTS.md updated; decisions D1–D9 recorded.
+  - 351 tests.
+
 ### 2026-10-01 - A map of every macOS Kannu feature and where it stands on Windows
 - **Developer label:** "plan and create a map for every feature I specifically added for mac version and if we have done it in windows, what do we genuinely avoided, what we can do, what needs maybe a decision from me, what cant be done"
 - **Agent label:** Feature-parity map from a full inventory of the macOS source, with open decisions and a re-ordered roadmap

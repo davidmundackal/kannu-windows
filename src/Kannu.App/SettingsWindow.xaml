@@ -1,0 +1,251 @@
+<Window x:Class="Kannu.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kannu Settings"
+        Width="980" Height="700" MinWidth="720" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Kannu.WindowBackground}"
+        Foreground="{DynamicResource Kannu.Text}"
+        FontFamily="{StaticResource Kannu.Font.Text}"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <!-- One settings row: title and description on the left, the control on the right. -->
+        <Style x:Key="RowGrid" TargetType="Grid">
+            <Setter Property="MinHeight" Value="40" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Navigation pane -->
+        <DockPanel Margin="16,20,12,16">
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,0,0,24">
+                <Border Width="40" Height="40" CornerRadius="20" Background="{DynamicResource Kannu.Card}"
+                        BorderBrush="{DynamicResource Kannu.CardStroke}" BorderThickness="1">
+                    <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE890;" FontSize="20" HorizontalAlignment="Center"
+                               Foreground="{DynamicResource Kannu.Accent}" />
+                </Border>
+                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Kannu" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock x:Name="NavVersion" FontSize="12" Foreground="{DynamicResource Kannu.TextSecondary}" />
+                </StackPanel>
+            </StackPanel>
+            <ListBox x:Name="Nav" Style="{StaticResource Kannu.NavList}" SelectionChanged="Nav_SelectionChanged">
+                <ListBoxItem Tag="Notch">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7F4;" Margin="0,0,14,0" />
+                        <TextBlock Text="Notch" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="Agents">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE99A;" Margin="0,0,14,0" />
+                        <TextBlock Text="Agents" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+                <ListBoxItem Tag="About">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE946;" Margin="0,0,14,0" />
+                        <TextBlock Text="About" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
+            </ListBox>
+        </DockPanel>
+
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+            <Grid Margin="24,20,40,32" MaxWidth="1000" HorizontalAlignment="Stretch">
+
+                <!-- Notch -->
+                <StackPanel x:Name="NotchPage">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Notch" />
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Shape" Margin="0,0,0,8" />
+                    <UniformGrid Columns="2" Margin="0,0,0,4">
+                        <RadioButton x:Name="ShapeNotch" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Shape"
+                                     Margin="0,0,4,0" Checked="Shape_Checked">
+                            <StackPanel>
+                                <Border Height="72" CornerRadius="4" Background="{DynamicResource Kannu.WindowBackground}"
+                                        BorderBrush="{DynamicResource Kannu.CardStroke}" BorderThickness="1" ClipToBounds="True">
+                                    <Border Width="96" Height="18" VerticalAlignment="Top" CornerRadius="0,0,9,9" Background="#FF121214">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Ellipse Width="5" Height="5" Fill="#FF22C55E" Margin="2,0" />
+                                            <Ellipse Width="5" Height="5" Fill="#FFFACC15" Margin="2,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Border>
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Notch" Margin="0,12,0,0" />
+                                <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Attached to the top of the screen, like a MacBook's notch." />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="ShapePill" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Shape"
+                                     Margin="4,0,0,0" Checked="Shape_Checked">
+                            <StackPanel>
+                                <Border Height="72" CornerRadius="4" Background="{DynamicResource Kannu.WindowBackground}"
+                                        BorderBrush="{DynamicResource Kannu.CardStroke}" BorderThickness="1" ClipToBounds="True">
+                                    <Border Width="96" Height="18" Margin="0,6,0,0" VerticalAlignment="Top" CornerRadius="9" Background="#FF121214">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Ellipse Width="5" Height="5" Fill="#FF22C55E" Margin="2,0" />
+                                            <Ellipse Width="5" Height="5" Fill="#FFFACC15" Margin="2,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Border>
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Floating pill" Margin="0,12,0,0" />
+                                <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="A rounded pill just below the top edge." />
+                            </StackPanel>
+                        </RadioButton>
+                    </UniformGrid>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="When it appears" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xED1A;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Stay hidden until something happens" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                               Text="The notch slides in for a few seconds when an agent starts, needs you or finishes, then hides again. Click the Kannu eye in the taskbar to open it any time. Turn this off to keep it on screen." />
+                                </StackPanel>
+                                <CheckBox x:Name="HideToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Toggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8B0;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Reveal when the pointer rests at the top of the screen" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                               Text="While the notch is hidden, rest the pointer at the top centre of the screen for a second to bring it out." />
+                                </StackPanel>
+                                <CheckBox x:Name="EdgeToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Toggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE740;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Open when the pointer is over the notch" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                               Text="Shows every session while the pointer is on the notch." />
+                                </StackPanel>
+                                <CheckBox x:Name="HoverToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Toggle_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Agents -->
+                <StackPanel x:Name="AgentsPage" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Agents" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Margin="0,-8,0,16"
+                               Text="Install Kannu's hook in each agent you use and its sessions appear on the notch. Claude Code, Cursor, Warp and Claude Desktop also show up without a hook, with less detail." />
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent hooks" Margin="0,0,0,8" />
+                    <StackPanel x:Name="AgentRows" />
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Status files" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <Grid Style="{StaticResource RowGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8B7;" Margin="0,0,16,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Status folder" />
+                                <TextBlock x:Name="StatusFolderPath" Style="{StaticResource Kannu.RowDescription}" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Open" Click="OpenStatusFolder_Click" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- About -->
+                <StackPanel x:Name="AboutPage" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="About" />
+                    <Border Style="{StaticResource Kannu.Card}" Padding="20">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="56" Height="56" CornerRadius="28" Background="#FF121214" Margin="0,0,18,0">
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE890;" FontSize="26" HorizontalAlignment="Center"
+                                           Foreground="#FFFFFFFF" />
+                            </Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Kannu for Windows" FontFamily="{StaticResource Kannu.Font.Display}" FontSize="20" FontWeight="SemiBold" />
+                                <TextBlock x:Name="AboutVersion" Style="{StaticResource Kannu.RowDescription}" FontSize="13" />
+                                <TextBlock x:Name="UpdateStatus" Style="{StaticResource Kannu.RowDescription}" FontSize="13" />
+                            </StackPanel>
+                            <Button x:Name="CheckUpdatesButton" Grid.Column="2" Style="{StaticResource Kannu.AccentButton}"
+                                    Content="Check for updates" VerticalAlignment="Center" Click="CheckUpdates_Click" />
+                        </Grid>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Legal" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8A5;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Terms of Use" />
+                                    <TextBlock x:Name="TermsStatus" Style="{StaticResource Kannu.RowDescription}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="View" Click="ViewTerms_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8D7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Licence" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                               Text="Free software under the GNU General Public License, version 3 or later." />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource Kannu.LinkButton}" Content="GPL-3.0" Tag="license" Click="Link_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Help" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Button Style="{StaticResource Kannu.LinkButton}" Content="Source code on GitHub" Tag="repo" Click="Link_Click"
+                                    HorizontalAlignment="Left" Margin="0,4" />
+                            <Button Style="{StaticResource Kannu.LinkButton}" Content="Report a problem" Tag="issue" Click="Link_Click"
+                                    HorizontalAlignment="Left" Margin="0,4" />
+                            <Button Style="{StaticResource Kannu.LinkButton}" Content="Report a security issue privately" Tag="security"
+                                    Click="Link_Click" HorizontalAlignment="Left" Margin="0,4" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

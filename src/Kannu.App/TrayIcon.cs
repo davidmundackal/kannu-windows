@@ -38,17 +38,11 @@ internal sealed class TrayIcon : IDisposable
     private readonly List<IntPtr> _iconHandles = [];
     private TrafficLight _light = TrafficLight.Inactive;
 
-    public TrayIcon(NotchWindow notch, string statusDirectory, UpdateService updates, Action quit)
+    /// <param name="toggleNotch">Left click, and "Open Kannu": the notch opens with its tabs (or closes).</param>
+    public TrayIcon(Action toggleNotch, Action openSettings, string statusDirectory, UpdateService updates, Action quit)
     {
         _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
         BuildIcons();
-
-        var show = new ToolStripMenuItem("Show notch") { Checked = true, CheckOnClick = true };
-        show.CheckedChanged += (_, _) =>
-        {
-            if (show.Checked) notch.Show();
-            else notch.Hide();
-        };
 
         // One item per agent: checked when Kannu's hook is installed; clicking installs or removes it.
         var agents = new ToolStripMenuItem("Agent hooks");
@@ -92,14 +86,15 @@ internal sealed class TrayIcon : IDisposable
         menu.Items.AddRange(new ToolStripItem[]
         {
             version,
-            checkForUpdates,
-            restartToUpdate,
             new ToolStripSeparator(),
-            show,
+            new ToolStripMenuItem("Open Kannu", null, (_, _) => toggleNotch()),
+            new ToolStripMenuItem("Settings…", null, (_, _) => openSettings()),
             new ToolStripSeparator(),
             agents,
             openFolder,
             new ToolStripSeparator(),
+            checkForUpdates,
+            restartToUpdate,
             new ToolStripMenuItem("Quit Kannu", null, (_, _) => quit()),
         });
 
@@ -109,6 +104,11 @@ internal sealed class TrayIcon : IDisposable
             Text = "Kannu",
             ContextMenuStrip = menu,
             Visible = true,
+        };
+        // Left click opens the notch, as clicking the eye in the macOS menu bar does; right click is the menu.
+        _icon.MouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left) toggleNotch();
         };
 
         // Taskbar theme or display scale changed: the idle eye's colour or the icon size is stale.

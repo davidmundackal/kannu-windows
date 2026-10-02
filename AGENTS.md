@@ -57,6 +57,11 @@ update and uninstall hooks run in `Program.Main` before any window: keep them fa
 throw. Branches: day-to-day work lands on `development`, `main` is the release branch, PRs target
 `development`.
 
+Nothing starts before the Terms of Use are accepted: `App.OnStartup` shows the gate first and only
+then calls `ContinueLaunch`, which starts the watcher, notch, tray and updater. New launch work goes in
+`ContinueLaunch`. Raising `TermsOfUse.CurrentVersion` asks everyone again; change the "Version" line
+in `TERMS.md` with it (a test pins the two).
+
 What is ported from macOS Kannu, what is not, and why: `docs/PARITY.md`. A PR that ships, drops or
 reroutes a feature updates its row in the same commit.
 
