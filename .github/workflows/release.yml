@@ -89,11 +89,12 @@ jobs:
           if ($line -ne '{"permission":"allow","continue":true}') { throw "unexpected stdout: $line" }
 
       # The release body is docs/release-notes/<version>.md, carried in the package by vpk pack.
+      # --merge: a release made first on GitHub's Releases page (which creates the tag) gets the files.
       - name: Publish the GitHub Release
         shell: pwsh
         run: |
           vpk upload github --repoUrl $env:REPO_URL --token ${{ secrets.GITHUB_TOKEN }} --outputDir Releases `
-            --publish --tag ${{ github.ref_name }} `
+            --publish --merge --tag ${{ github.ref_name }} `
             --releaseName "Kannu for Windows ${{ steps.release.outputs.version }} — ${{ steps.release.outputs.codename }}" `
             ${{ steps.release.outputs.pre }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

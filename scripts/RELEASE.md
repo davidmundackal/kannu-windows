@@ -33,6 +33,11 @@ Title: `Kannu for Windows X.Y.Z — <Codename>`. Body: `docs/release-notes/X.Y.Z
    git push origin vX.Y.Z
    ```
 
+   Or, without a terminal: on GitHub, **Releases › Draft a new release**, type the tag
+   (`vX.Y.Z`, or `vX.Y.Z-beta.N` with **Set as a pre-release** ticked), target the branch to release,
+   and publish. That creates the tag, the tag runs the workflow, and the workflow adds the installer
+   and update files to that release (`vpk upload --merge`).
+
 5. Watch the **Release** workflow. The workflow refuses a tag whose version differs from
    `<Version>` in `Directory.Build.props`.
 6. Merge `main` back into `development`.
