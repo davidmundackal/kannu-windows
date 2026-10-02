@@ -4,6 +4,15 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - A beta guide, and the first beta pre-release
+- **Developer label:** "how do I test a install in windows, if you can please add the file in our documents folder, i will send that to beta users"
+- **Agent label:** Beta tester guide in docs/, release notes brought up to date, and a v0.1.0-beta.1 pre-release built by the release workflow
+- **Changes:**
+  - `docs/BETA.md`: install (including SmartScreen), a test checklist, known gaps, updates, how to
+    report a problem or a security issue, where Kannu keeps things, uninstall.
+  - `docs/release-notes/0.1.0.md`: the hidden-by-default notch, Settings and the Terms of Use.
+  - README links the beta guide.
+
 ### 2026-10-02 - A hidden notch that comes out when agents change, a Windows Settings window, and the Terms gate
 - **Developer label:** "what we want is a floating pill option but by default hidden and a notch appears like when a state changes like we have in mac app ... clicking our kannu icon in bar reveals notch and our different tabs, see if hover can still work as usual once notch is shown, but when its closed do not reveal if pointed near notch, atleast not by default, users can switch that option on in settings, make settings look a bit nice for windows users"; "8 write windows version"
 - **Agent label:** Port of macOS Kannu's hide-until-hover reveal rules, a Windows 11 style Settings window, and a Windows edition of the Terms of Use with its launch gate

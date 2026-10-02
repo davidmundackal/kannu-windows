@@ -24,6 +24,8 @@ Antigravity, Gemini CLI, Qwen Code and opencode**.
 
 ## Install
 
+Beta testers: start with the [beta guide](docs/BETA.md).
+
 1. Download **`Kannu-win-Setup.exe`** from the latest
    [release](https://github.com/davidmundackal/kannu-windows/releases/latest).
 2. Run it. Releases are not code-signed yet, so the first time Windows SmartScreen says *"Windows
