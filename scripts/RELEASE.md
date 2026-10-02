@@ -38,6 +38,11 @@ Title: `Kannu for Windows X.Y.Z — <Codename>`. Body: `docs/release-notes/X.Y.Z
    and publish. That creates the tag, the tag runs the workflow, and the workflow adds the installer
    and update files to that release (`vpk upload --merge`).
 
+   Or from a commit: push a commit to a `claude/**` branch whose message contains
+   `[release vX.Y.Z-beta.N]` (an empty commit works: `git commit --allow-empty -m "Cut beta
+   [release v0.1.0-beta.3]"`). The workflow creates the tag at that commit and publishes the
+   release. This is how an agent session, which can push only its own branch, cuts a beta.
+
 5. Watch the **Release** workflow. The workflow refuses a tag whose version differs from
    `<Version>` in `Directory.Build.props`.
 6. Merge `main` back into `development`.

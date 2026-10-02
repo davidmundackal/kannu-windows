@@ -1,10 +1,14 @@
 name: Release
 
-# Push a tag to publish a release: vX.Y.Z for a release, vX.Y.Z-test.N for a test (a GitHub
-# pre-release that only test builds update to). See scripts/RELEASE.md.
+# Two ways to publish a release (see scripts/RELEASE.md):
+#  - push a tag vX.Y.Z (or vX.Y.Z-beta.N / -test.N for a pre-release that only such builds update to),
+#    or create the release on GitHub's Releases page, which pushes the tag;
+#  - push a commit to a claude/** branch whose message contains "[release vX.Y.Z-beta.N]": the run
+#    creates the tag and the release itself. Any other branch push skips the job.
 on:
   push:
     tags: ['v*']
+    branches: ['claude/**']
 
 permissions:
   contents: write
@@ -18,6 +22,7 @@ env:
 
 jobs:
   release:
+    if: startsWith(github.ref, 'refs/tags/v') || contains(github.event.head_commit.message, '[release v')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,16 +34,26 @@ jobs:
       - name: Read the version, and refuse a tag that disagrees with it
         id: release
         shell: pwsh
+        env:
+          # Through the environment, never pasted into the script: a commit message is untrusted text.
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          $version = '${{ github.ref_name }}' -replace '^v', ''
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $version = '${{ github.ref_name }}' -replace '^v', ''
+          } else {
+            $match = [regex]::Match($env:COMMIT_MESSAGE, '\[release v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)\]')
+            if (-not $match.Success) { throw 'No [release vX.Y.Z] marker in the commit message.' }
+            $version = $match.Groups[1].Value
+          }
           $props = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
           if (($version -replace '-.*$', '') -ne $props) {
-            throw "Tag ${{ github.ref_name }} does not match <Version>$props</Version> in Directory.Build.props."
+            throw "Version $version does not match <Version>$props</Version> in Directory.Build.props."
           }
           $codename = [regex]::Match((Get-Content -Raw src/Kannu.Core/ReleaseInfo.cs), 'Codename = "([^"]+)"').Groups[1].Value
           $velopack = ([xml](Get-Content src/Kannu.App/Kannu.App.csproj)).Project.ItemGroup.PackageReference |
             Where-Object { $_.Include -eq 'Velopack' } | ForEach-Object { $_.Version }
           "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
           "codename=$codename" >> $env:GITHUB_OUTPUT
           "velopack=$velopack" >> $env:GITHUB_OUTPUT
           "pre=$(if ($version.Contains('-')) { '--pre' } else { '' })" >> $env:GITHUB_OUTPUT
@@ -94,7 +109,7 @@ jobs:
         shell: pwsh
         run: |
           vpk upload github --repoUrl $env:REPO_URL --token ${{ secrets.GITHUB_TOKEN }} --outputDir Releases `
-            --publish --merge --tag ${{ github.ref_name }} `
+            --publish --merge --tag ${{ steps.release.outputs.tag }} --targetCommitish ${{ github.sha }} `
             --releaseName "Kannu for Windows ${{ steps.release.outputs.version }} — ${{ steps.release.outputs.codename }}" `
             ${{ steps.release.outputs.pre }}
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -108,7 +123,7 @@ jobs:
         run: |
           $version = '${{ steps.release.outputs.version }}'
           $notes = "docs/release-notes/$($version -replace '-.*$', '').md"
-          $edit = @('release', 'edit', '${{ github.ref_name }}', '--repo', '${{ github.repository }}',
+          $edit = @('release', 'edit', '${{ steps.release.outputs.tag }}', '--repo', '${{ github.repository }}',
             '--title', "Kannu for Windows $version — ${{ steps.release.outputs.codename }}")
           if (Test-Path $notes) { $edit += '--notes-file', $notes }
           gh @edit

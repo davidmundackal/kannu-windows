@@ -4,6 +4,18 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - A beta can be published from a commit message
+- **Developer label:** "can you do tthe publishing part, i can login for you in chrome"
+- **Agent label:** release.yml also runs on claude/** branch pushes whose commit message carries [release vX.Y.Z], creating the tag and release itself
+- **Changes:**
+  - An agent session can push only its own branch (no tags, no browser), so `release.yml` now also
+    runs on `claude/**` pushes whose head commit message contains `[release vX.Y.Z...]`; other
+    branch pushes skip the job. The version comes from the marker (read through the environment,
+    never pasted into the script) and must still match `<Version>`.
+  - `vpk upload` creates the tag at the pushed commit (`--targetCommitish`); the title and notes
+    step uses the computed tag.
+  - `scripts/RELEASE.md` documents the route.
+
 ### 2026-10-02 - Crash and freeze reports, exportable logs, and starting at sign-in
 - **Developer label:** "now do we also have crash report function like the mac version" / "these are crtitical features and needs help"
 - **Agent label:** Ports of macOS CrashReporter, HangWatchdog, DiagnosticScrub, Export Logs and launch at login
