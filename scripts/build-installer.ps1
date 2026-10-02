@@ -49,7 +49,6 @@ vpk pack `
     --packTitle Kannu `
     --packAuthors 'Kannu Contributors' `
     --icon "$root/assets/Kannu.ico" `
-    --framework net8.0-x64-desktop `
     --shortcuts StartMenuRoot `
     --outputDir "$root/$Output" `
     @notesArgs `

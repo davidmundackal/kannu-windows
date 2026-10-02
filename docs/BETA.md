@@ -21,8 +21,8 @@ This is a beta. Things will be rough in places, and your reports are what makes 
    https://github.com/davidmundackal/kannu-windows/releases
 2. Run it. The beta is not code-signed yet, so Windows SmartScreen says *"Windows protected your PC"*
    the first time. Click **More info**, then **Run anyway**.
-3. Kannu installs for your Windows account only (no administrator prompt). If the .NET 8 Desktop
-   Runtime is missing, the installer adds it first.
+3. Kannu installs for your Windows account only (no administrator prompt). Everything it needs is
+   included; nothing else is installed.
 4. Kannu shows its **Terms of Use**. Read them and click **Accept** (Decline closes Kannu).
 5. Kannu's eye appears in the notification area of the taskbar (you may need to click the **^**
    arrow to see it, and can drag it next to the clock). The notch itself stays hidden until

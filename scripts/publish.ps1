@@ -23,8 +23,9 @@ if ($Version) { $versionArgs += "-p:Version=$Version" }
 dotnet publish "$root/src/Kannu.Hook" -c Release -r $Runtime -o $Output @versionArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# The app needs the .NET 8 Desktop Runtime; the installer adds it when missing.
-dotnet publish "$root/src/Kannu.App" -c Release -r $Runtime --self-contained false -o $Output @versionArgs
+# Self-contained: .NET ships inside Kannu, so installing never stops to run Microsoft's separate
+# .NET Desktop Runtime installer (which beta testers hit as an extra, confusing prompt).
+dotnet publish "$root/src/Kannu.App" -c Release -r $Runtime --self-contained true -o $Output @versionArgs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Published to $Output"

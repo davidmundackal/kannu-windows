@@ -4,6 +4,17 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - Installing Kannu no longer runs a separate .NET installer
+- **Developer label:** "there were some erros, and it asked to install somne additional package .net" / "desktop runtime some installer"
+- **Agent label:** Publish the app self-contained so setup never installs the .NET Desktop Runtime
+- **Changes:**
+  - The app is published self-contained: .NET ships inside Kannu, so `Kannu-win-Setup.exe` no longer
+    stops to run Microsoft's .NET 8 Desktop Runtime installer, which beta testers met as an extra
+    prompt and errors. The installer grows from about 13 MB to about 81 MB; later updates download
+    only what changed (delta packages).
+  - `vpk pack` no longer passes `--framework net8.0-x64-desktop`.
+  - README, beta guide, release notes and RELEASE.md say nothing else is installed.
+
 ### 2026-10-02 - Every release shows its notes, however it was created
 - **Developer label:** "The release page only says \"Full Changelog\", not the release notes ... do"
 - **Agent label:** release.yml sets the title and body from docs/release-notes after uploading

@@ -31,7 +31,7 @@ Beta testers: start with the [beta guide](docs/BETA.md).
 2. Run it. Releases are not code-signed yet, so the first time Windows SmartScreen says *"Windows
    protected your PC"*: click **More info**, then **Run anyway**.
 3. Kannu installs for your user only (no administrator prompt) into `%LOCALAPPDATA%\Kannu`, adds a
-   Start-menu entry, installs the .NET 8 Desktop Runtime if it is missing, and starts. The eye appears
+   Start-menu entry, and starts. .NET is included, so nothing else gets installed. The eye appears
    in the notification area; the notch stays hidden until an agent does something.
 4. Accept the Terms of Use, then open **Settings › Agents** (right-click the eye) and install the
    hook for each agent you use.

@@ -21,7 +21,7 @@ jobs:
       - name: Test
         run: dotnet test tests/Kannu.Core.Tests -c Release
 
-      - name: Publish (hook as Native AOT, app framework-dependent)
+      - name: Publish (hook as Native AOT, app self-contained)
         shell: pwsh
         # With -Version, as release.yml calls it, so the versioned path is exercised on every PR.
         run: ./scripts/publish.ps1 -Runtime win-x64 -Output out/win-x64 -Version 0.0.1-ci

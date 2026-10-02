@@ -9,7 +9,7 @@ themselves. This is the Windows counterpart of macOS Kannu's DMG + Sparkle pipel
 
 | File                       | What                                                                    |
 |----------------------------|-------------------------------------------------------------------------|
-| `Kannu-win-Setup.exe`      | The installer users download. Per-user, no admin prompt, Start-menu entry, installs the .NET 8 Desktop Runtime when missing. |
+| `Kannu-win-Setup.exe`      | The installer users download. Per-user, no admin prompt, Start-menu entry, includes .NET, so nothing else is installed. |
 | `Kannu-win-Portable.zip`   | Kannu without an installer; runs from any folder.                       |
 | `Kannu-X.Y.Z-full.nupkg`   | The full update package.                                                |
 | `Kannu-X.Y.Z-delta.nupkg`  | The update from the previous release (only what changed); absent on the first release. |
