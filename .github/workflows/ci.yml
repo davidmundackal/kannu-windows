@@ -24,7 +24,7 @@ jobs:
       - name: Publish (hook as Native AOT, app framework-dependent)
         shell: pwsh
         # With -Version, as release.yml calls it, so the versioned path is exercised on every PR.
-        run: ./scripts/publish.ps1 -Runtime win-x64 -Output out/win-x64 -Version 0.0.0-ci
+        run: ./scripts/publish.ps1 -Runtime win-x64 -Output out/win-x64 -Version 0.0.1-ci
 
       - name: Smoke-test the published hook
         shell: pwsh
@@ -44,7 +44,7 @@ jobs:
             Where-Object { $_.Include -eq 'Velopack' } | ForEach-Object { $_.Version }
           dotnet tool install -g vpk --version $velopack
           $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
-          ./scripts/build-installer.ps1 -SkipPublish -Version 0.0.0-ci
+          ./scripts/build-installer.ps1 -SkipPublish -Version 0.0.1-ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path Releases/Kannu-win-Setup.exe)) { throw 'Kannu-win-Setup.exe was not built.' }
 

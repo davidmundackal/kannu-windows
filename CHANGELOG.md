@@ -12,7 +12,7 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
     and splatting a string passes it a character at a time ("Unknown switch" from MSBuild), so the
     `v0.1.0-beta.1` release run failed before building anything. Argument lists in `publish.ps1` and
     `build-installer.ps1` are now built explicitly.
-  - CI publishes and packs with `-Version 0.0.0-ci`, as the release workflow does, so this path is
+  - CI publishes and packs with `-Version 0.0.1-ci` (vpk needs at least 0.0.1), as the release workflow does, so this path is
     tested on every PR rather than first on a tag.
   - `docs/BETA.md` links to the releases page instead of one beta's tag.
 
