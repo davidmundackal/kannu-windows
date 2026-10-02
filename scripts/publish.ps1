@@ -14,7 +14,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$versionArgs = if ($Version) { @("-p:Version=$Version") } else { @() }
+# Built up explicitly: `if` returns a one-element array as a bare string, and splatting a string
+# passes it one character at a time (the first beta release failed on exactly that).
+$versionArgs = @()
+if ($Version) { $versionArgs += "-p:Version=$Version" }
 
 # The hook runs on every agent event: Native AOT so it starts in milliseconds with no runtime needed.
 dotnet publish "$root/src/Kannu.Hook" -c Release -r $Runtime -o $Output @versionArgs

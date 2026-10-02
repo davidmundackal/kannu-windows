@@ -4,6 +4,18 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-02 - The release build passes its version through, and CI proves it
+- **Developer label:** "i pushed on publish release why is it not showing up, please check"
+- **Agent label:** Fix the argument splatting that failed the first release run; CI runs the versioned publish path
+- **Changes:**
+  - `publish.ps1` turned `-Version` into a one-element array that PowerShell unwrapped to a string,
+    and splatting a string passes it a character at a time ("Unknown switch" from MSBuild), so the
+    `v0.1.0-beta.1` release run failed before building anything. Argument lists in `publish.ps1` and
+    `build-installer.ps1` are now built explicitly.
+  - CI publishes and packs with `-Version 0.0.0-ci`, as the release workflow does, so this path is
+    tested on every PR rather than first on a tag.
+  - `docs/BETA.md` links to the releases page instead of one beta's tag.
+
 ### 2026-10-02 - A beta guide, and the first beta pre-release
 - **Developer label:** "how do I test a install in windows, if you can please add the file in our documents folder, i will send that to beta users"
 - **Agent label:** Beta tester guide in docs/, release notes brought up to date, and a v0.1.0-beta.1 pre-release built by the release workflow

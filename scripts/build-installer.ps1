@@ -35,8 +35,11 @@ if (-not $SkipPublish) {
 }
 
 $notes = "$root/docs/release-notes/$($Version -replace '-.*$', '').md"
-$notesArgs = if (Test-Path $notes) { @('--releaseNotes', $notes) } else { @() }
-$signArgs = if ($SignParams) { @('--signParams', $SignParams) } else { @() }
+# Arrays built explicitly, never from an `if` expression: see publish.ps1.
+$notesArgs = @()
+if (Test-Path $notes) { $notesArgs += '--releaseNotes', $notes }
+$signArgs = @()
+if ($SignParams) { $signArgs += '--signParams', $SignParams }
 
 vpk pack `
     --packId Kannu `

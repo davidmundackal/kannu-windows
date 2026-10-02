@@ -17,8 +17,8 @@ This is a beta. Things will be rough in places, and your reports are what makes 
 
 ## Install
 
-1. Download **`Kannu-win-Setup.exe`** from the beta release:
-   https://github.com/davidmundackal/kannu-windows/releases/tag/v0.1.0-beta.1
+1. Download **`Kannu-win-Setup.exe`** from the newest beta (marked "Pre-release") on the releases page:
+   https://github.com/davidmundackal/kannu-windows/releases
 2. Run it. The beta is not code-signed yet, so Windows SmartScreen says *"Windows protected your PC"*
    the first time. Click **More info**, then **Run anyway**.
 3. Kannu installs for your Windows account only (no administrator prompt). If the .NET 8 Desktop
