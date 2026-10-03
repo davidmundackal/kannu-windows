@@ -30,7 +30,9 @@ public enum SessionLogProvider
 /// chat and project names. Port of macOS <c>AgentSessionLogParser</c>. Transcripts are large and read
 /// on every rescan, so every read is bounded and every verdict is cached against (mtime, size).
 /// </summary>
-public sealed partial class SessionLogParser(string home)
+/// <param name="home">The user profile directory.</param>
+/// <param name="codexHome">Codex's <c>CODEX_HOME</c> when set; empty or null means <c>~/.codex</c>.</param>
+public sealed partial class SessionLogParser(string home, string? codexHome = null)
 {
     private const int LeadingByteLimit = 32_000;
     private const int MaxSessionsPerScan = 24;
@@ -55,7 +57,8 @@ public sealed partial class SessionLogParser(string home)
 
     public string ClaudeProjectsDirectory => Path.Combine(home, ".claude", "projects");
     public string ClaudeSessionsDirectory => Path.Combine(home, ".claude", "sessions");
-    public string CodexSessionsDirectory => Path.Combine(home, ".codex", "sessions");
+    public string CodexSessionsDirectory =>
+        Path.Combine(string.IsNullOrWhiteSpace(codexHome) ? Path.Combine(home, ".codex") : codexHome.Trim(), "sessions");
 
     public void InvalidatePathCache() => _pathCache.Clear();
 

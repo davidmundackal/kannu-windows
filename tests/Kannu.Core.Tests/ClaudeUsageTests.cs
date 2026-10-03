@@ -151,6 +151,19 @@ public sealed class ClaudeUsageTests : IDisposable
         Assert.Equal("Claude 5-hour limit at 96%", UsageAlerts.Payload(near, _ => "X").Title);
     }
 
+    [Fact]
+    public void AQuotaStopResumesAtTheLatestFullReset()
+    {
+        var full5h = new UsageWindow("five_hour", null, 100, Now + 3600_000, null, Now);
+        var fullWeek = new UsageWindow("seven_day", null, 99.2, Now + 86_400_000, null, Now);
+        var half = new UsageWindow("model_scoped:Fable", "Fable", 50, Now + 999_999_000, null, Now);
+        Assert.Equal(Now + 86_400_000, UsageAlerts.ResumeAtMs("claude", "quota_exceeded", [full5h, fullWeek, half], Now));
+        Assert.Equal(Now + 3600_000, UsageAlerts.ResumeAtMs("claude", "quota_exceeded", [full5h, half], Now));
+        Assert.Null(UsageAlerts.ResumeAtMs("claude", "stopped", [full5h], Now));
+        Assert.Null(UsageAlerts.ResumeAtMs("codex", "quota_exceeded", [full5h], Now));
+        Assert.Null(UsageAlerts.ResumeAtMs("claude", "quota_exceeded", [half], Now));
+    }
+
     // ---- Install ----
 
     private AgentHookInstaller Installer()

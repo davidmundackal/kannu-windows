@@ -344,6 +344,25 @@ public static class UsageAlerts
 {
     public const double NearLimitPercent = 95;
 
+    /// <summary>A window at this or more is full: the agent cannot go on until it resets.</summary>
+    public const double FullPercent = 99;
+
+    /// <summary>
+    /// When an agent that stopped on its quota can go on: the latest reset among its full (or
+    /// critical) live windows. Claude Code only, the one agent whose limits Kannu reads. Port of
+    /// macOS <c>UsageAlertPolicy.resumeDate</c>.
+    /// </summary>
+    public static long? ResumeAtMs(string provider, string rawState, IReadOnlyList<UsageWindow> claudeWindows, long nowMs)
+    {
+        if (!rawState.Equals("quota_exceeded", StringComparison.OrdinalIgnoreCase) || !provider.Equals("claude", StringComparison.OrdinalIgnoreCase)) return null;
+        var resets = claudeWindows
+            .Where(w => w.IsLive(nowMs) && (w.Percent >= FullPercent || string.Equals(w.Severity, "critical", StringComparison.OrdinalIgnoreCase)))
+            .Select(w => w.ResetsAtMs)
+            .OfType<long>()
+            .ToList();
+        return resets.Count > 0 ? resets.Max() : null;
+    }
+
     public static bool IsNearLimit(UsageWindow window, long nowMs) =>
         window.IsLive(nowMs) && (window.Percent >= NearLimitPercent || window.Severity == "critical");
 

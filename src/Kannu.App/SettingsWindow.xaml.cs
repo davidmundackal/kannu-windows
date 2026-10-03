@@ -271,9 +271,58 @@ public partial class SettingsWindow : Window
     private void Display_Checked(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
-        var display = DisplayPointer.IsChecked == true ? NotchDisplay.Pointer : NotchDisplay.Primary;
-        _settings.Update(s => s with { Display = display });
+        var display = DisplayPointer.IsChecked == true ? NotchDisplay.Pointer
+            : DisplayChosen.IsChecked == true ? NotchDisplay.Chosen : NotchDisplay.Primary;
+        _settings.Update(s => s with
+        {
+            Display = display,
+            DisplayDevice = display == NotchDisplay.Chosen ? s.DisplayDevice ?? System.Windows.Forms.Screen.PrimaryScreen?.DeviceName : s.DisplayDevice,
+        });
     }
+
+    /// <summary>One tile per connected monitor, shown while "This display" is chosen.</summary>
+    private void BuildDisplayChoices(AppSettings s)
+    {
+        DisplayChoices.Children.Clear();
+        DisplayChoices.Visibility = s.Display == NotchDisplay.Chosen ? Visibility.Visible : Visibility.Collapsed;
+        if (s.Display != NotchDisplay.Chosen) return;
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        for (var i = 0; i < screens.Length; i++)
+        {
+            var screen = screens[i];
+            var label = $"Display {i + 1} · {screen.Bounds.Width}×{screen.Bounds.Height}" + (screen.Primary ? " · main" : "");
+            var tile = new RadioButton
+            {
+                Style = (Style)FindResource("Kannu.ChoiceTile"),
+                GroupName = "DisplayDevice",
+                Content = label,
+                Margin = new Thickness(0, 0, 6, 6),
+                IsChecked = screen.DeviceName == s.DisplayDevice,
+            };
+            var device = screen.DeviceName;
+            tile.Checked += (_, _) =>
+            {
+                if (!_loading) _settings.Update(x => x with { DisplayDevice = device });
+            };
+            DisplayChoices.Children.Add(tile);
+        }
+        if (s.DisplayDevice is { } chosen && screens.All(m => m.DeviceName != chosen))
+        {
+            DisplayChoices.Children.Add(new TextBlock
+            {
+                Text = "The chosen display is not connected; the notch is on the main display until it is.",
+                Style = (Style)FindResource("Kannu.RowDescription"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+        }
+    }
+
+    private void Capture_Click(object sender, RoutedEventArgs e) =>
+        _settings.Update(s => s with { HideFromCapture = CaptureToggle.IsChecked == true });
+
+    private void Restart_Click(object sender, RoutedEventArgs e) => App.Restart();
+
+    private void Quit_Click(object sender, RoutedEventArgs e) => Application.Current.Shutdown();
 
     private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
         _settings.Update(s => s with { HideInFullscreen = FullscreenToggle.IsChecked == true });
@@ -573,6 +622,9 @@ public partial class SettingsWindow : Window
         LoadSecurity(s);
         DisplayPrimary.IsChecked = s.Display == NotchDisplay.Primary;
         DisplayPointer.IsChecked = s.Display == NotchDisplay.Pointer;
+        DisplayChosen.IsChecked = s.Display == NotchDisplay.Chosen;
+        BuildDisplayChoices(s);
+        CaptureToggle.IsChecked = s.HideFromCapture;
         FullscreenToggle.IsChecked = s.HideInFullscreen;
         ShortcutToggle.IsChecked = s.ShortcutsEnabled;
         ShortcutDescription.Text = s.ShortcutsEnabled && ShortcutManager.Taken
@@ -745,6 +797,96 @@ public partial class SettingsWindow : Window
         AgentRows.Children.Clear();
         foreach (var provider in Enum.GetValues<AgentProvider>()) AgentRows.Children.Add(AgentRow(provider));
         BuildUsageRow();
+        _ = BuildWslRowsAsync();
+    }
+
+    // ---- WSL ----
+
+    private bool _wslBusy;
+
+    /// <summary>
+    /// One card per WSL distro. Asking WSL can start its VM and take seconds, so the rows fill in
+    /// from a background thread.
+    /// </summary>
+    private async System.Threading.Tasks.Task BuildWslRowsAsync()
+    {
+        if (_wslBusy) return;
+        if (!WslSetup.IsAvailable)
+        {
+            WslTitle.Visibility = WslRows.Visibility = Visibility.Collapsed;
+            return;
+        }
+        _wslBusy = true;
+        WslRows.Children.Clear();
+        WslRows.Children.Add(WslCard(new TextBlock { Text = "Looking for WSL distros…", Style = (Style)FindResource("Kannu.RowDescription") }));
+        try
+        {
+            var states = await System.Threading.Tasks.Task.Run(() => WslSetup.Distros().Select(WslSetup.Inspect).ToList());
+            WslRows.Children.Clear();
+            if (states.Count == 0)
+            {
+                WslTitle.Visibility = WslRows.Visibility = Visibility.Collapsed;
+                return;
+            }
+            WslTitle.Visibility = WslRows.Visibility = Visibility.Visible;
+            foreach (var state in states) WslRows.Children.Add(WslRow(state));
+        }
+        finally
+        {
+            _wslBusy = false;
+        }
+    }
+
+    private Border WslCard(UIElement child) => new() { Style = (Style)FindResource("Kannu.Card"), Child = child };
+
+    private Border WslRow(WslSetup.DistroState state)
+    {
+        var grid = new Grid { MinHeight = 40 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(new TextBlock { Style = (Style)FindResource("Kannu.Icon"), Text = "\uE756", Margin = new Thickness(0, 0, 16, 0) });
+
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 24, 0) };
+        text.Children.Add(new TextBlock { Text = state.Distro, Style = (Style)FindResource("Kannu.RowTitle") });
+        var installed = state.Installed.Count > 0;
+        text.Children.Add(new TextBlock
+        {
+            Text = state.Problem
+                   ?? (installed
+                       ? "Installed for " + string.Join(", ", state.Installed.Select(p => p.DisplayName())) + "."
+                       : "Found " + string.Join(", ", state.Present.Select(p => p.DisplayName())) + ". Install Kannu's hook so their sessions show on the notch."),
+            Style = (Style)FindResource("Kannu.RowDescription"),
+            TextWrapping = TextWrapping.Wrap,
+        });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(text);
+
+        var button = new Button
+        {
+            Content = installed ? "Remove" : "Install",
+            Style = (Style)FindResource(installed ? "Kannu.Button" : "Kannu.AccentButton"),
+            IsEnabled = state.Present.Count > 0,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        button.Click += async (_, _) =>
+        {
+            button.IsEnabled = false;
+            string message;
+            try
+            {
+                message = await System.Threading.Tasks.Task.Run(() => installed ? WslSetup.Uninstall(state.Distro) : WslSetup.Install(state.Distro));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                message = ex.Message;
+            }
+            MessageBox.Show(this, message, "Kannu", MessageBoxButton.OK, MessageBoxImage.Information);
+            await BuildWslRowsAsync();
+        };
+        Grid.SetColumn(button, 2);
+        grid.Children.Add(button);
+        return WslCard(grid);
     }
 
     /// <summary>Claude Code's plan limits on the notch's Usage tab, through Kannu's statusline.</summary>

@@ -128,6 +128,16 @@ internal static class NativeMethods
         return (info.Work, scale);
     }
 
+    /// <summary>The work area of the monitor that holds <paramref name="point"/> (physical pixels), with its scale.</summary>
+    public static (RECT Work, double Scale)? MonitorWorkAreaAt(int x, int y)
+    {
+        var monitor = MonitorFromPoint(new POINT { X = x, Y = y }, 1);
+        var info = new MONITORINFO { Size = Marshal.SizeOf<MONITORINFO>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfoW(monitor, ref info)) return null;
+        var scale = GetDpiForMonitor(monitor, 0, out var dpiX, out _) == 0 && dpiX > 0 ? dpiX / 96.0 : 1.0;
+        return (info.Work, scale);
+    }
+
     /// <summary>Moves the window's top-left corner, in physical pixels, without resizing or activating it.</summary>
     public static void MoveWindow(IntPtr hwnd, int x, int y) =>
         SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, 0x0001 /* NOSIZE */ | 0x0004 /* NOZORDER */ | 0x0010 /* NOACTIVATE */);
@@ -167,4 +177,37 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
+
+    // ---- Screenshots and recordings ----
+
+    /// <summary>
+    /// Leaves the window out of screenshots, recordings and screen sharing (WDA_EXCLUDEFROMCAPTURE,
+    /// Windows 10 2004 and later). False where Windows refuses; the notch then simply shows.
+    /// </summary>
+    public static bool ExcludeFromCapture(IntPtr hwnd, bool exclude) =>
+        SetWindowDisplayAffinity(hwnd, exclude ? 0x11u : 0u);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint affinity);
+
+    // ---- Click outside (low-level mouse hook, only while the notch is open) ----
+
+    public delegate IntPtr LowLevelMouseProc(int code, IntPtr wParam, IntPtr lParam);
+
+    public const int WH_MOUSE_LL = 14;
+    public const int WM_LBUTTONDOWN = 0x0201, WM_RBUTTONDOWN = 0x0204, WM_MBUTTONDOWN = 0x0207;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr SetWindowsHookExW(int hook, LowLevelMouseProc proc, IntPtr module, uint threadId);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnhookWindowsHookEx(IntPtr hook);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+    public static extern IntPtr GetModuleHandleW(string? name);
 }

@@ -106,6 +106,14 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
         };
         // Left click opens the notch, as clicking the eye in the macOS menu bar does; right click is the menu.
+        // A notification with an action (the memory guard's restart) runs it when clicked.
+        _icon.BalloonTipClicked += (_, _) =>
+        {
+            var action = _toastAction;
+            _toastAction = null;
+            action?.Invoke();
+        };
+        _icon.BalloonTipClosed += (_, _) => _toastAction = null;
         _icon.MouseClick += (_, e) =>
         {
             if (e.Button == MouseButtons.Left) toggleNotch();
@@ -127,7 +135,15 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>The hover tooltip; Windows caps it at 63 characters.</summary>
     /// <summary>A Windows notification from the tray icon (shown as a toast on Windows 10 and 11).</summary>
-    public void ShowToast(string title, string body) => _icon.ShowBalloonTip(5000, title, body, ToolTipIcon.Info);
+    public void ShowToast(string title, string body) => ShowToast(title, body, null);
+
+    private Action? _toastAction;
+
+    public void ShowToast(string title, string body, Action? onClick)
+    {
+        _toastAction = onClick;
+        _icon.ShowBalloonTip(onClick is null ? 5000 : 15000, title, body, ToolTipIcon.Info);
+    }
 
     public void SetSummary(string summary)
     {

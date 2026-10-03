@@ -117,11 +117,11 @@ internal sealed class UsageMonitor : IDisposable
             : HookSetup.UsageStatuslineInstalled
                 ? "Limits appear after Claude Code's next reply. They need a Claude subscription login (/login in Claude Code)."
                 : "Turn on Claude Code plan limits in Settings › Agents to see your 5-hour and weekly limits here.";
-        _model.UpdateUsage(bars, hint);
+        _model.UpdateUsage(bars, hint, windows);
     }
 
     /// <summary>"15:40" today, "Tue 15:40" on another day, in the user's own time format.</summary>
-    private static string Clock(long ms)
+    internal static string Clock(long ms)
     {
         var at = DateTimeOffset.FromUnixTimeMilliseconds(ms).LocalDateTime;
         var time = at.ToString("t", System.Globalization.CultureInfo.CurrentCulture);

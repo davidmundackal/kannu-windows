@@ -72,6 +72,20 @@ internal static class HookSetup
         return $"{provider.DisplayName()} hooks removed.";
     }
 
+    /// <summary>Where agents run the hook from (a copy outside the app folder, which updates replace).</summary>
+    public static string InstalledHookPath => Installer.HookExePath;
+
+    /// <summary>Copies the bundled hook to <see cref="InstalledHookPath"/>.</summary>
+    public static void EnsureHookExe()
+    {
+        if (!File.Exists(BundledHookPath))
+        {
+            throw new FileNotFoundException($"{HookExeName} was not found next to Kannu.exe.");
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(Installer.HookExePath)!);
+        CopyWithRetry(BundledHookPath, Installer.HookExePath);
+    }
+
     public static bool UsageStatuslineInstalled => Installer.IsUsageStatuslineInstalled();
 
     /// <returns>A message for the user.</returns>

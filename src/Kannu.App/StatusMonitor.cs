@@ -28,7 +28,7 @@ namespace Kannu.App;
 /// only when the directory changes (debounced, off the UI thread). A tick re-runs the pipeline with
 /// fresh passive evidence (Claude's session records and transcript tails, read off the UI thread and
 /// cached against mtime and size): every second while a card is listed, so red collapses and stale
-/// lights dim on time, and every five seconds otherwise, to notice a Claude session with no hooks.
+/// lights dim on time, and every five seconds otherwise, to notice a Claude or Codex session with no hooks.
 /// </summary>
 internal sealed class StatusMonitor : IDisposable
 {
@@ -44,6 +44,7 @@ internal sealed class StatusMonitor : IDisposable
     private bool _readingTokens;
     private readonly AgentSessionPipeline _pipeline;
     private readonly SessionLogParser _logs;
+    private readonly CodexPassiveScanner _codex;
     private readonly CursorPassive _cursor;
     private readonly WarpStore _warp = new(WarpStore.DefaultCandidates());
     private readonly ClaudeDesktopAgentStore _desktop = new(ClaudeDesktopAgentStore.DefaultRoot());
@@ -68,7 +69,8 @@ internal sealed class StatusMonitor : IDisposable
         _home = home;
         _tokens = new TurnTokenReader(Path.Combine(home, ".claude", "projects"));
         _pipeline = new AgentSessionPipeline(new AgentTimings(), home);
-        _logs = new SessionLogParser(home);
+        _logs = new SessionLogParser(home, Environment.GetEnvironmentVariable("CODEX_HOME"));
+        _codex = new CodexPassiveScanner(_logs);
         _cursor = new CursorPassive(new CursorTranscripts(home), new CursorDatabase(CursorDatabase.DefaultUserDirectory()));
 
         _debounce = new DispatcherTimer(DispatcherPriority.Background, _dispatcher) { Interval = Debounce };
@@ -152,7 +154,9 @@ internal sealed class StatusMonitor : IDisposable
                 var timings = _pipeline.Timings;
                 var hookCursorIds = _files.Where(f => f.Record.Provider == "cursor")
                     .Select(f => f.Key["cursor-".Length..]).ToHashSet();
-                var (claude, cursor, names, others) = await Task.Run(() =>
+                var hookCodexIds = _files.Where(f => f.Record.Provider == "codex")
+                    .Select(f => f.Key.StartsWith("codex-", StringComparison.Ordinal) ? f.Key["codex-".Length..] : f.Key).ToHashSet();
+                var (claude, cursor, names, others, codex) = await Task.Run(() =>
                 {
                     var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                     var claudeScan = ClaudePassiveScanner.Scan(_logs, timings, now, ProcessProbe.Of);
@@ -165,10 +169,13 @@ internal sealed class StatusMonitor : IDisposable
                         .. _warp.Sessions(timings, now, WarpStore.IsWarpRunning()),
                         .. _desktop.Sessions(timings, now),
                     ];
-                    return (claudeScan, cursorScan, CodexNames(timings, now), others);
+                    // Codex without Kannu's hook: its rollout files. Hooked conversations are skipped here
+                    // (no tail read) and again in the pipeline, where the hook card wins.
+                    var codexScan = _codex.Scan(timings, now, hookCodexIds);
+                    return (claudeScan, cursorScan, CodexNames(timings, now), others, codexScan);
                 });
                 Publish(new PassiveEvidence(claude.Sessions, claude.DeadPidConversationIds, claude.LiveTails,
-                    cursor.PendingApprovalIds, others, cursor.Analysis, cursor.SubagentParents, cursor.TitleSources, names));
+                    cursor.PendingApprovalIds, others, cursor.Analysis, cursor.SubagentParents, cursor.TitleSources, names, codex));
             } while (_refreshAgain);
         }
         finally

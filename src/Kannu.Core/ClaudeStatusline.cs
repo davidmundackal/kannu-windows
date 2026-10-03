@@ -33,7 +33,7 @@ public sealed partial class AgentHookInstaller
     {
         get
         {
-            var path = HookExePath.Replace('\\', '/');
+            var path = CommandExePath.Replace('\\', '/');
             if (path.Contains(' ')) path = $"\"{path}\"";
             return path + " statusline";
         }

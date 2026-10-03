@@ -39,12 +39,19 @@ public sealed partial class AgentHookInstaller(AgentHookLayout layout, string ho
     public string HookExePath { get; } = hookExePath;
 
     /// <summary>
+    /// The hook as the agent names it in its command. The same file as <see cref="HookExePath"/>,
+    /// except for an agent inside WSL, which runs the Windows hook through WSL interop by its Linux path
+    /// (<c>/mnt/c/…/kannu-hook.exe</c>).
+    /// </summary>
+    public string CommandExePath { get; init; } = hookExePath;
+
+    /// <summary>
     /// The command an agent runs. Forward slashes work in cmd, PowerShell and Git Bash alike, and so
     /// does a bare path; quotes would break PowerShell, so they are added only when the path has a space.
     /// </summary>
     public string Command(AgentProvider provider, HookEntry entry)
     {
-        var path = HookExePath.Replace('\\', '/');
+        var path = CommandExePath.Replace('\\', '/');
         if (path.Contains(' ')) path = $"\"{path}\"";
         var command = $"{path} {entry.State} {provider.Id()} {entry.Event}";
         return entry.Matcher is null ? command : $"{command} {entry.MatcherKey}";
@@ -66,7 +73,7 @@ public sealed partial class AgentHookInstaller(AgentHookLayout layout, string ho
                 EnableCodexHooks(files.SharedSettings[0]);
                 break;
             case AgentProvider.Opencode:
-                WriteText(files.Configs[0].Path, OpencodePluginSource.Source(HookExePath));
+                WriteText(files.Configs[0].Path, OpencodePluginSource.Source(CommandExePath));
                 break;
             default:
                 // Antigravity reads whichever of its files exists: each is merged into its own content.

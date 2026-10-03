@@ -25,6 +25,9 @@ public enum NotchDisplay
 
     /// <summary>The monitor the pointer is on when the notch appears.</summary>
     Pointer,
+
+    /// <summary>One monitor the user picked (<see cref="AppSettings.DisplayDevice"/>); the main display while it is not connected.</summary>
+    Chosen,
 }
 
 public enum NotchStyle
@@ -54,6 +57,12 @@ public sealed record AppSettings
     public bool OpenOnHover { get; init; } = true;
 
     public NotchDisplay Display { get; init; } = NotchDisplay.Primary;
+
+    /// <summary>Windows' device name of the chosen monitor (<c>\\.\DISPLAY2</c>), for <see cref="NotchDisplay.Chosen"/>.</summary>
+    public string? DisplayDevice { get; init; }
+
+    /// <summary>Leave the notch out of screenshots, recordings and screen sharing. Off by default.</summary>
+    public bool HideFromCapture { get; init; }
 
     /// <summary>Stay out of full-screen apps, games and presentations. On by default.</summary>
     public bool HideInFullscreen { get; init; } = true;
@@ -150,7 +159,14 @@ public sealed record AppSettings
             HideUntilActivity = Bool(root, "hideUntilActivity") ?? defaults.HideUntilActivity,
             RevealOnTopEdge = Bool(root, "revealOnTopEdge") ?? defaults.RevealOnTopEdge,
             OpenOnHover = Bool(root, "openOnHover") ?? defaults.OpenOnHover,
-            Display = String(root, "display") == "pointer" ? NotchDisplay.Pointer : NotchDisplay.Primary,
+            Display = String(root, "display") switch
+            {
+                "pointer" => NotchDisplay.Pointer,
+                "chosen" => NotchDisplay.Chosen,
+                _ => NotchDisplay.Primary,
+            },
+            DisplayDevice = String(root, "displayDevice"),
+            HideFromCapture = Bool(root, "hideFromCapture") ?? false,
             HideInFullscreen = Bool(root, "hideInFullscreen") ?? defaults.HideInFullscreen,
             ShortcutsEnabled = Bool(root, "shortcutsEnabled") ?? false,
             OnboardingDone = Bool(root, "onboardingDone") ?? false,
@@ -199,7 +215,9 @@ public sealed record AppSettings
             ["revealOnTopEdge"] = RevealOnTopEdge,
             ["openOnHover"] = OpenOnHover,
         };
-        root["display"] = Display == NotchDisplay.Pointer ? "pointer" : "primary";
+        root["display"] = Display.ToString().ToLowerInvariant();
+        if (DisplayDevice is { } device) root["displayDevice"] = device;
+        root["hideFromCapture"] = HideFromCapture;
         root["hideInFullscreen"] = HideInFullscreen;
         root["shortcutsEnabled"] = ShortcutsEnabled;
         if (OnboardingDone) root["onboardingDone"] = true;

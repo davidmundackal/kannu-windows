@@ -14,6 +14,7 @@
 
 
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -133,6 +134,7 @@ public partial class NotchWindow : Window
         {
             SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             _fullscreenPoll.Stop();
+            StopWatchingClicks();
             settings.Changed -= ApplySettings;
             KannuColors.Changed -= ApplyLights;
         };
@@ -143,6 +145,9 @@ public partial class NotchWindow : Window
     /// <summary>A click on the tray eye.</summary>
     public void ToggleFromTray()
     {
+        // The click on the tray eye already closed the open notch as a click outside it: that click
+        // meant "close", not "close and open again".
+        if (Now - _closedByOutsideAt < 600) return;
         _presence.ToggleFromTray(Now);
         Apply();
     }
@@ -157,7 +162,7 @@ public partial class NotchWindow : Window
     private void DockToTop()
     {
         var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd != IntPtr.Zero && NativeMethods.MonitorWorkArea(_settings.Current.Display == NotchDisplay.Pointer) is var (work, scale))
+        if (hwnd != IntPtr.Zero && TargetWorkArea() is var (work, scale))
         {
             var width = (int)Math.Round(Width * scale);
             NativeMethods.MoveWindow(hwnd, work.Left + (work.Right - work.Left - width) / 2, work.Top);
@@ -166,6 +171,19 @@ public partial class NotchWindow : Window
         var area = SystemParameters.WorkArea;
         Left = area.Left + (area.Width - Width) / 2;
         Top = area.Top;
+    }
+
+    /// <summary>The chosen monitor's work area; the main display when the chosen one is not connected.</summary>
+    private (NativeMethods.RECT Work, double Scale)? TargetWorkArea()
+    {
+        var s = _settings.Current;
+        if (s.Display == NotchDisplay.Chosen && s.DisplayDevice is { } device
+            && System.Windows.Forms.Screen.AllScreens.FirstOrDefault(m => m.DeviceName == device) is { } screen)
+        {
+            var bounds = screen.Bounds;
+            return NativeMethods.MonitorWorkAreaAt(bounds.Left + bounds.Width / 2, bounds.Top + bounds.Height / 2);
+        }
+        return NativeMethods.MonitorWorkArea(s.Display == NotchDisplay.Pointer);
     }
 
     /// <summary>The always-visible notch steps aside while a full-screen app, game or presentation is in front.</summary>
@@ -189,6 +207,10 @@ public partial class NotchWindow : Window
         ApplySkin(settings);
         ApplyLights();
         _presence.Configure(settings.HideUntilActivity, settings.OpenOnHover, Now);
+        if (new WindowInteropHelper(this).Handle is var handle && handle != IntPtr.Zero)
+        {
+            NativeMethods.ExcludeFromCapture(handle, settings.HideFromCapture);
+        }
         DockToTop();
         Apply(force: true);
         ApplyFullscreen();
@@ -322,6 +344,8 @@ public partial class NotchWindow : Window
             if (wasHidden && state != NotchPresenceState.Hidden && _settings.Current.Display == NotchDisplay.Pointer) DockToTop();
             if (state == NotchPresenceState.Open) Pill.Visibility = Visibility.Visible;
             if (wasHidden != (state == NotchPresenceState.Hidden) || force) Slide(visible: state != NotchPresenceState.Hidden);
+            if (state == NotchPresenceState.Open) WatchClicksOutside();
+            else StopWatchingClicks();
             if (wasOpen != (state == NotchPresenceState.Open) || force)
             {
                 ApplyCorners(state == NotchPresenceState.Open);
@@ -356,7 +380,7 @@ public partial class NotchWindow : Window
     {
         var card = _model.HasSecurityAlert && !_model.IsUsageTab ? 64 : 0;
         var content = card + (_model.IsUsageTab
-            ? (_model.UsageBars.Count == 0 ? EmptyHeight + 18 : _model.UsageBars.Count * UsageBar.Height)
+            ? (_model.UsageBars.Count == 0 ? EmptyHeight + 18 : _model.UsageBars.Count * UsageBar.Height) + (_model.HasOtherUsage ? 22 : 0)
             : _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight);
         // Leave room inside the window for the open motion's overshoot and the pill's offset.
         return Math.Min(ExpandedChrome + content, Height - 12 - PillTopOffset);
@@ -396,6 +420,56 @@ public partial class NotchWindow : Window
             BeginTime = open ? TimeSpan.Zero : Ms(120),
         });
         ExpandedContent.IsHitTestVisible = open;
+    }
+
+    // ---- Click outside ----
+
+    private IntPtr _mouseHook;
+    private long _closedByOutsideAt;
+    private NativeMethods.LowLevelMouseProc? _mouseProc;
+
+    /// <summary>
+    /// Only while the notch is open: a low-level mouse hook sees a click anywhere. Removed as soon as
+    /// the notch closes, so a closed notch costs nothing.
+    /// </summary>
+    private void WatchClicksOutside()
+    {
+        if (_mouseHook != IntPtr.Zero) return;
+        _mouseProc ??= OnMouse;
+        _mouseHook = NativeMethods.SetWindowsHookExW(NativeMethods.WH_MOUSE_LL, _mouseProc, NativeMethods.GetModuleHandleW(null), 0);
+    }
+
+    private void StopWatchingClicks()
+    {
+        if (_mouseHook == IntPtr.Zero) return;
+        NativeMethods.UnhookWindowsHookEx(_mouseHook);
+        _mouseHook = IntPtr.Zero;
+    }
+
+    private IntPtr OnMouse(int code, IntPtr wParam, IntPtr lParam)
+    {
+        var message = wParam.ToInt32();
+        if (code >= 0 && message is NativeMethods.WM_LBUTTONDOWN or NativeMethods.WM_RBUTTONDOWN or NativeMethods.WM_MBUTTONDOWN
+            && NativeMethods.GetCursorPos(out var point) && !PillContains(point))
+        {
+            // Never act inside the hook: Windows drops a hook that takes too long.
+            Dispatcher.BeginInvoke(() =>
+            {
+                if (_presence.State == NotchPresenceState.Open) _closedByOutsideAt = Now;
+                _presence.ClickedOutside(Now);
+                Apply();
+            });
+        }
+        return NativeMethods.CallNextHookEx(_mouseHook, code, wParam, lParam);
+    }
+
+    private bool PillContains(NativeMethods.POINT point)
+    {
+        if (PresentationSource.FromVisual(Pill) is not { } source) return true;
+        var toDevice = source.CompositionTarget.TransformToDevice;
+        var origin = Pill.PointToScreen(new Point(0, 0));
+        var rect = new Rect(origin, new Size(Pill.ActualWidth * toDevice.M11, Pill.ActualHeight * toDevice.M22));
+        return rect.Contains(new Point(point.X, point.Y));
     }
 
     // ---- Top edge (opt-in) ----

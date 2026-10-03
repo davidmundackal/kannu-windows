@@ -183,10 +183,13 @@
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                     <RadioButton x:Name="DisplayPrimary" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display" Margin="0,0,6,0"
                                                  Content="Main display" Checked="Display_Checked" />
-                                    <RadioButton x:Name="DisplayPointer" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display"
+                                    <RadioButton x:Name="DisplayPointer" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display" Margin="0,0,6,0"
                                                  Content="Where the pointer is" Checked="Display_Checked" />
+                                    <RadioButton x:Name="DisplayChosen" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display"
+                                                 Content="This display" Checked="Display_Checked" />
                                 </StackPanel>
                             </Grid>
+                            <WrapPanel x:Name="DisplayChoices" Margin="36,0,0,8" />
                             <Border Style="{StaticResource Kannu.Divider}" />
                             <Grid Style="{StaticResource RowGrid}">
                                 <Grid.ColumnDefinitions>
@@ -200,6 +203,20 @@
                                     <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="While a full-screen app, game or presentation is in front, the notch does not come out on its own. The tray eye still opens it." />
                                 </StackPanel>
                                 <CheckBox x:Name="FullscreenToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Fullscreen_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7B3;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Hide from screenshots and recordings" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Screenshots, screen recordings and screen sharing leave the notch out. Off by default." />
+                                </StackPanel>
+                                <CheckBox x:Name="CaptureToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Capture_Click" />
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -360,6 +377,8 @@
 
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent hooks" />
                     <StackPanel x:Name="AgentRows" />
+                    <TextBlock x:Name="WslTitle" Style="{StaticResource Kannu.SectionTitle}" Text="Agents in WSL" />
+                    <StackPanel x:Name="WslRows" />
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Usage limits" />
                     <StackPanel x:Name="UsageRows" />
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Status files" />
@@ -784,6 +803,24 @@
                                 <Button Style="{StaticResource Kannu.Button}" Content="Export…" Click="ExportLogs_Click" />
                             </StackPanel>
                         </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Kannu.Card}">
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE72C;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Restart or quit Kannu" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Restarting clears Kannu's memory and reads every agent again. Quitting stops watching until you start Kannu again." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Restart" Margin="0,0,8,0" Click="Restart_Click" />
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Quit" Click="Quit_Click" />
+                                </StackPanel>
+                            </Grid>
                     </Border>
                     <Border Style="{StaticResource Kannu.Card}">
                         <StackPanel>

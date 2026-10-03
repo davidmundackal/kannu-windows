@@ -37,6 +37,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // A restart (Settings, or the memory guard) starts the new Kannu before the old one has quit.
+        WaitForPreviousInstance(e.Args);
         _singleInstance = new Mutex(true, @"Local\Kannu.Windows.SingleInstance", out var firstInstance);
         if (!firstInstance)
         {
@@ -111,6 +113,19 @@ public partial class App : Application
         _updates.Start();
         WelcomeWindow.ShowOnce(settings, OpenSettingsAt);
 
+        // macOS's memory guard: past 1 GB something is leaking; offer a restart, once per run.
+        var memory = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
+        memory.Tick += (_, _) =>
+        {
+            using var self = System.Diagnostics.Process.GetCurrentProcess();
+            if (self.PrivateMemorySize64 < MemoryGuardBytes) return;
+            memory.Stop();
+            Diagnostics.Info($"memory guard: {self.PrivateMemorySize64 / (1024 * 1024)} MB");
+            tray.ShowToast("Kannu is using a lot of memory",
+                $"{self.PrivateMemorySize64 / (1024 * 1024)} MB. Click here to restart Kannu; your agents keep running.", Restart);
+        };
+        memory.Start();
+
         // macOS offers the last crash a few seconds after launch, once everything is up.
         var offer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         offer.Tick += (_, _) =>
@@ -119,6 +134,47 @@ public partial class App : Application
             ProblemReportWindow.OfferIfAny(settings);
         };
         offer.Start();
+    }
+
+    private const string RestartArgument = "--after-pid";
+
+    private const long MemoryGuardBytes = 1024L * 1024 * 1024;
+
+    /// <summary>Starts a new Kannu that waits for this one to exit, then quits.</summary>
+    internal static void Restart()
+    {
+        if (Environment.ProcessPath is not { } path) return;
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = false };
+            start.ArgumentList.Add(RestartArgument);
+            start.ArgumentList.Add(Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            System.Diagnostics.Process.Start(start);
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            Diagnostics.Error("restart failed", ex);
+            return;
+        }
+        Current.Shutdown();
+    }
+
+    private static void WaitForPreviousInstance(string[] args)
+    {
+        var at = Array.IndexOf(args, RestartArgument);
+        if (at < 0 || at + 1 >= args.Length || !int.TryParse(args[at + 1], out var pid)) return;
+        try
+        {
+            using var previous = System.Diagnostics.Process.GetProcessById(pid);
+            previous.WaitForExit(10_000);
+        }
+        catch (ArgumentException)
+        {
+            // Already gone.
+        }
+        catch (InvalidOperationException)
+        {
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

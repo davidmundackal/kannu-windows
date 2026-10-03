@@ -100,6 +100,15 @@ public sealed class NotchPresence
         Evaluate(nowMs);
     }
 
+    /// <summary>A click anywhere outside the open notch closes it at once (Atoll's click-outside), without waiting for the grace period.</summary>
+    public void ClickedOutside(long nowMs)
+    {
+        if (!_open) return;
+        _pointerInside = false;
+        Close(nowMs);
+        Evaluate(nowMs);
+    }
+
     /// <summary>A click on the tray eye: open the notch, or close it when it is open.</summary>
     public void ToggleFromTray(long nowMs)
     {

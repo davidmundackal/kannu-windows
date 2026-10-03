@@ -24,6 +24,7 @@ namespace Kannu.Core;
 /// <param name="CursorSubagentParents">Cursor Task/subagent chats to the chat that launched them.</param>
 /// <param name="CursorTitleSources">Where Cursor chat titles come from, for naming Cursor hook cards.</param>
 /// <param name="LogNames">"provider|conversationId" to the name and project its own session log gives (Codex).</param>
+/// <param name="PassiveCodex">Codex sessions read from rollout files, for Codex without Kannu's hook. A hook card for the same conversation always wins.</param>
 public sealed record PassiveEvidence(
     IReadOnlyList<AgentSession> PassiveClaude,
     IReadOnlySet<string> DeadPidConversationIds,
@@ -33,7 +34,8 @@ public sealed record PassiveEvidence(
     IReadOnlyDictionary<string, TranscriptAnalysis>? CursorAnalysis = null,
     IReadOnlyDictionary<string, string>? CursorSubagentParents = null,
     ChatTitleSources? CursorTitleSources = null,
-    IReadOnlyDictionary<string, (string? Name, string? Project)>? LogNames = null)
+    IReadOnlyDictionary<string, (string? Name, string? Project)>? LogNames = null,
+    IReadOnlyList<AgentSession>? PassiveCodex = null)
 {
     public static readonly PassiveEvidence None = new([], new HashSet<string>(), new Dictionary<string, ClaudeTailState>(), new HashSet<string>(), []);
 }
@@ -67,7 +69,7 @@ public sealed class AgentSessionPipeline(AgentTimings timings, string home)
         // Cursor: transcript context on the hook cards before the merge (a merged card can wear a
         // Cursor identity over a Claude-won state, and must not then be repainted by Cursor evidence).
         if (evidence.CursorAnalysis is { Count: > 0 } analysis) sessions = CursorSessions.EnrichHookSessions(sessions, analysis, nowMs);
-        sessions = CursorSessions.Merge(sessions, evidence.OtherSessions, nowMs);
+        sessions = CursorSessions.Merge(sessions, [.. evidence.OtherSessions, .. UnhookedCodex(hook.Sessions, evidence.PassiveCodex)], nowMs);
         if (evidence.CursorSubagentParents is { Count: > 0 } parents) sessions = CursorSessions.CollapseSubagents(sessions, parents, nowMs);
         if (evidence.CursorTitleSources is { } sources)
         {
@@ -111,5 +113,18 @@ public sealed class AgentSessionPipeline(AgentTimings timings, string home)
             .ThenByDescending(s => s.UpdatedAtMs)
             .ToList();
         return new PipelineResult(visible, AgentStateMachine.ResolveDisplayState(latest), hook.StaleFiles);
+    }
+
+    /// <summary>
+    /// Passive Codex sessions with no hook card: the hook sees approvals and turn ends first-hand, so
+    /// its card wins outright rather than competing in the merge (where a rollout's stale state could
+    /// outrank it), and the conversation is listed once.
+    /// </summary>
+    internal static IEnumerable<AgentSession> UnhookedCodex(IReadOnlyList<AgentSession> hookSessions, IReadOnlyList<AgentSession>? passive)
+    {
+        if (passive is not { Count: > 0 }) return [];
+        var hooked = hookSessions.Where(s => s.Provider.Equals("codex", StringComparison.OrdinalIgnoreCase))
+            .Select(s => s.ConversationId).ToHashSet();
+        return passive.Where(s => !hooked.Contains(s.ConversationId));
     }
 }

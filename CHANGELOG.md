@@ -4,6 +4,22 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - WSL agents, hookless Codex and the remaining small gaps
+- **Developer label:** "anything else we have left out ?"
+- **Agent label:** Group A of the leftover plan (WSL D1, hookless Codex, click outside, chosen display, capture exclusion, restart/quit, memory guard, Antigravity count, resumes-at), shipped as v0.1.0-beta.9
+- **Changes:**
+  - WSL: `WslAgents` (Core) and `WslSetup` (app) write each distro's CLI agent settings with the
+    Windows hook's Linux path (`AgentHookInstaller.CommandExePath`), through `\\wsl.localhost`.
+    Settings › Agents › Agents in WSL. Tested.
+  - `CodexPassiveScanner`: Codex rollouts as sessions without the hook; a hook session wins. Tested.
+  - Notch: click outside closes (`NotchPresence.ClickedOutside`, a mouse hook only while open); a
+    chosen display; `WDA_EXCLUDEFROMCAPTURE` behind a setting.
+  - Restart (the new Kannu waits for the old one) and Quit in Settings › About; a memory guard
+    above 1 GB offers a restart.
+  - `UsageAlerts.ResumeAtMs`: "resumes 15:40" on a Claude card stopped on its quota. Antigravity
+    sessions and last activity on the Usage tab.
+  - 509 tests.
+
 ### 2026-10-03 - Agent Security: hook checks, findings, shield and policy
 - **Developer label:** "Agent Security: findings, shield, secrets and hidden-text checks, agent policy, MCP watch, ADR" ("where are we i need all those items shipped to test")
 - **Agent label:** Port of macOS Kannu's in-hook checks (v35-v42), AgentSecurityFinding, finding groups, MCPServerWatch and the security push, without ADR (D5); shipped as v0.1.0-beta.8

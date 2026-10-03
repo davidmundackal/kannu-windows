@@ -292,6 +292,18 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    <TextBlock Text="{Binding OtherUsage}" Foreground="#B3FFFFFF" FontSize="11" Margin="0,0,0,6" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOtherUsage}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                     <TextBlock Text="{Binding UsageHint}" Foreground="#99FFFFFF" FontSize="12" TextWrapping="Wrap" MinHeight="30">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">

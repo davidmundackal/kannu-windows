@@ -126,8 +126,17 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>What the Usage tab says when it has no bars.</summary>
     public string UsageHint { get; private set; } = "";
 
-    public void UpdateUsage(IReadOnlyList<UsageBar> bars, string hint)
+    /// <summary>Claude's live limits, for "resumes at" on a card that stopped on its quota.</summary>
+    public IReadOnlyList<UsageWindow> ClaudeWindows { get; private set; } = [];
+
+    /// <summary>The Usage tab's line for agents Kannu has no limits for (Antigravity: sessions and last activity).</summary>
+    public string OtherUsage { get; private set; } = "";
+
+    public bool HasOtherUsage => OtherUsage.Length > 0;
+
+    public void UpdateUsage(IReadOnlyList<UsageBar> bars, string hint, IReadOnlyList<UsageWindow> windows)
     {
+        ClaudeWindows = windows;
         var countChanged = bars.Count != UsageBars.Count;
         UsageBars.Clear();
         foreach (var bar in bars) UsageBars.Add(bar);
@@ -153,8 +162,21 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         Sessions.Clear();
         foreach (var session in sessions)
         {
-            var row = new SessionRow(session, nowMs, Tokens.TryGetValue(session.ConversationId, out var t) ? t : null);
+            var resume = UsageAlerts.ResumeAtMs(session.Provider, session.RawState, ClaudeWindows, nowMs);
+            var row = new SessionRow(session, nowMs, Tokens.TryGetValue(session.ConversationId, out var t) ? t : null,
+                resume is { } at ? UsageMonitor.Clock(at) : null);
             Sessions.Add(row);
+        }
+
+        // macOS's Antigravity card: how many sessions, and when one was last active (no limits to read).
+        var antigravity = sessions.Where(s => s.Provider == "antigravity").ToList();
+        var other = antigravity.Count == 0 ? ""
+            : $"Antigravity · {antigravity.Count} {(antigravity.Count == 1 ? "session" : "sessions")} · last active {TurnDisplay.FormatShort(nowMs - antigravity.Max(s => s.UpdatedAtMs))} ago";
+        if (other != OtherUsage)
+        {
+            OtherUsage = other;
+            PropertyChanged?.Invoke(this, new(nameof(OtherUsage)));
+            PropertyChanged?.Invoke(this, new(nameof(HasOtherUsage)));
         }
 
         var summary = Summarise(sessions);
@@ -266,7 +288,7 @@ internal sealed class UsageBar
 internal sealed class SessionRow
 {
 
-    public SessionRow(AgentSession session, long nowMs, TurnTokens? tokens)
+    public SessionRow(AgentSession session, long nowMs, TurnTokens? tokens, string? resumesAt = null)
     {
         Session = session;
         Icon = ProviderIcons.For(session.Provider);
@@ -276,6 +298,7 @@ internal sealed class SessionRow
             : session.ProjectName ?? session.DisplayChatName;
         Brush = KannuColors.BrushFor(session.DisplayState.Light());
         var parts = new List<string> { session.ProviderLabel, StateText(session) };
+        if (resumesAt is not null) parts.Add("resumes " + resumesAt);
         switch (TurnDisplay.For(session.Turn, session.ExecutionStartedAtMs, session.DisplayState, session.HasActiveRawState, session.UpdatedAtMs))
         {
             case TurnDisplay.Live live:

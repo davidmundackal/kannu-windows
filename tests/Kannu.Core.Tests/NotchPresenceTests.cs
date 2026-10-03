@@ -137,6 +137,20 @@ public class NotchPresenceTests
     }
 
     [Fact]
+    public void AClickOutsideClosesAtOnceEvenWhileHovered()
+    {
+        var p = Hidden();
+        p.ToggleFromTray(T);
+        p.PointerEntered(T + 500);
+        p.ClickedOutside(T + 600);
+        Assert.Equal(NotchPresenceState.Hidden, p.State);
+
+        var closed = Hidden();
+        closed.ClickedOutside(T); // nothing open: nothing happens
+        Assert.Equal(NotchPresenceState.Hidden, closed.State);
+    }
+
+    [Fact]
     public void ASecondTrayClickCloses()
     {
         var p = Hidden();
@@ -276,7 +290,9 @@ public sealed class AppSettingsTests : IDisposable
             PushOnInactive = true,
             WaitReminderMinutes = 10,
             ToastsEnabled = true,
-            Display = NotchDisplay.Pointer,
+            Display = NotchDisplay.Chosen,
+            DisplayDevice = @"\\.\DISPLAY2",
+            HideFromCapture = true,
             HideInFullscreen = false,
             ShortcutsEnabled = true,
             OnboardingDone = true,
