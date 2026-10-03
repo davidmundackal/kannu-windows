@@ -100,6 +100,23 @@ public sealed class NotchPresence
         Evaluate(nowMs);
     }
 
+    /// <summary>How long a HUD (brightness, screen capture) keeps a hidden notch out.</summary>
+    public const long HudHoldMs = 1_500;
+
+    /// <summary>
+    /// A HUD to show (brightness changed, screen capture started): a hidden notch comes out for
+    /// <see cref="HudHoldMs"/>, never shorter than a reveal already running.
+    /// </summary>
+    public void Hud(long nowMs)
+    {
+        if (_hideUntilActivity)
+        {
+            var until = nowMs + HudHoldMs;
+            if (_holdUntil is null || _holdUntil < until) _holdUntil = until;
+        }
+        Evaluate(nowMs);
+    }
+
     /// <summary>A click anywhere outside the open notch closes it at once (Atoll's click-outside), without waiting for the grace period.</summary>
     public void ClickedOutside(long nowMs)
     {

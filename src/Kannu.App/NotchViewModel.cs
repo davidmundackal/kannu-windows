@@ -94,6 +94,59 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         }
     }
 
+    // ---- HUD (brightness) and the screen-capture indicator ----
+
+    /// <summary>A HUD is showing on the closed notch in place of the lights.</summary>
+    public bool HasHud { get; private set; }
+
+    public string HudGlyph { get; private set; } = "";
+
+    /// <summary>The bar's fill, as two star widths.</summary>
+    public System.Windows.GridLength HudFilled { get; private set; } = new(0, System.Windows.GridUnitType.Star);
+
+    public System.Windows.GridLength HudEmpty { get; private set; } = new(1, System.Windows.GridUnitType.Star);
+
+    public event Action? HudShown;
+
+    private System.Windows.Threading.DispatcherTimer? _hudTimer;
+
+    public void ShowHud(string glyph, double fraction)
+    {
+        HudGlyph = glyph;
+        HudFilled = new System.Windows.GridLength(Math.Clamp(fraction, 0, 1), System.Windows.GridUnitType.Star);
+        HudEmpty = new System.Windows.GridLength(1 - Math.Clamp(fraction, 0, 1), System.Windows.GridUnitType.Star);
+        HasHud = true;
+        foreach (var name in new[] { nameof(HudGlyph), nameof(HudFilled), nameof(HudEmpty), nameof(HasHud) }) PropertyChanged?.Invoke(this, new(name));
+        _hudTimer ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(NotchPresence.HudHoldMs) };
+        _hudTimer.Tick -= HideHud;
+        _hudTimer.Tick += HideHud;
+        _hudTimer.Stop();
+        _hudTimer.Start();
+        HudShown?.Invoke();
+    }
+
+    private void HideHud(object? sender, EventArgs e)
+    {
+        _hudTimer?.Stop();
+        HasHud = false;
+        PropertyChanged?.Invoke(this, new(nameof(HasHud)));
+    }
+
+    /// <summary>Apps capturing the screen now (best effort); the red dot on the notch.</summary>
+    public bool IsCapturing { get; private set; }
+
+    public string CaptureText { get; private set; } = "";
+
+    public void UpdateCapture(IReadOnlyList<string> apps)
+    {
+        var started = apps.Count > 0 && !IsCapturing;
+        IsCapturing = apps.Count > 0;
+        CaptureText = apps.Count > 0 ? "Screen being captured by " + string.Join(", ", apps) : "";
+        PropertyChanged?.Invoke(this, new(nameof(IsCapturing)));
+        PropertyChanged?.Invoke(this, new(nameof(CaptureText)));
+        if (started) HudShown?.Invoke();
+    }
+
     /// <summary>A high security finding nobody has acknowledged: the shield on the closed notch, the card on the open one.</summary>
     public bool HasSecurityAlert => SecurityAlert is not null;
 

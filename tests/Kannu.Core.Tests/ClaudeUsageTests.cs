@@ -164,6 +164,24 @@ public sealed class ClaudeUsageTests : IDisposable
         Assert.Null(UsageAlerts.ResumeAtMs("claude", "quota_exceeded", [half], Now));
     }
 
+    [Fact]
+    public void ForecastReadingsSurviveARestartForEightDays()
+    {
+        var path = Path.Combine(_root, "usage-samples.json");
+        var samples = new Dictionary<string, IReadOnlyList<UsageForecast.Sample>>
+        {
+            ["five_hour"] = [new(Now - 9L * 24 * 3600_000, 5, null), new(Now - 60_000, 40, Now + 3600_000), new(Now, 41, null)],
+            ["seven_day"] = [new(Now - 9L * 24 * 3600_000, 5, null)],
+        };
+        UsageSampleStore.Save(path, samples, Now);
+        var loaded = UsageSampleStore.Load(path);
+        Assert.Equal([new UsageForecast.Sample(Now - 60_000, 40, Now + 3600_000), new UsageForecast.Sample(Now, 41, null)], loaded["five_hour"]);
+        Assert.False(loaded.ContainsKey("seven_day"));
+
+        File.WriteAllText(path, "{ broken");
+        Assert.Empty(UsageSampleStore.Load(path));
+    }
+
     // ---- Install ----
 
     private AgentHookInstaller Installer()

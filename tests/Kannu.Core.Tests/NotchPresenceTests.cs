@@ -137,6 +137,21 @@ public class NotchPresenceTests
     }
 
     [Fact]
+    public void AHudShowsBrieflyAndNeverShortensAReveal()
+    {
+        var p = Hidden();
+        p.Hud(T);
+        Assert.Equal(NotchPresenceState.Closed, p.State);
+        Assert.Equal(T + NotchPresence.HudHoldMs, p.NextDeadlineMs);
+        p.Tick(T + NotchPresence.HudHoldMs);
+        Assert.Equal(NotchPresenceState.Hidden, p.State);
+
+        p.AgentActivity(T + 10_000);
+        p.Hud(T + 10_100);
+        Assert.Equal(T + 10_000 + NotchPresence.RevealHoldMs, p.NextDeadlineMs);
+    }
+
+    [Fact]
     public void AClickOutsideClosesAtOnceEvenWhileHovered()
     {
         var p = Hidden();
@@ -296,6 +311,9 @@ public sealed class AppSettingsTests : IDisposable
             HideInFullscreen = false,
             ShortcutsEnabled = true,
             OnboardingDone = true,
+            BrightnessHud = true,
+            BrightnessShortcuts = true,
+            RecordingIndicator = true,
             DetectHiddenText = false,
             WarnAgentAboutHiddenText = true,
             DetectSecrets = false,

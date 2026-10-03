@@ -221,6 +221,53 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="On the notch" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE706;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Brightness" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="When the screen's brightness changes, the notch shows a bar for a moment. Windows' own brightness pop-up still shows too: laptop brightness keys are handled by the laptop's firmware, which no app can take over." />
+                                </StackPanel>
+                                <CheckBox x:Name="BrightnessHudToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Indicators_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE765;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Fine brightness steps with Ctrl+Alt+F1 / F2" />
+                                    <TextBlock x:Name="BrightnessKeysDescription" Style="{StaticResource Kannu.RowDescription}" Text="Small steps (1/64), on the display under the pointer: built-in screens, and external monitors that accept brightness commands (DDC/CI)." />
+                                </StackPanel>
+                                <CheckBox x:Name="BrightnessKeysToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Indicators_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7C8;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Screen capture" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="A red dot on the notch while an app captures the screen. Best effort: it sees apps that use Windows 11's screen-capture permission (Snipping Tool, Teams, browsers); recorders that use older methods, such as OBS by default, are not seen." />
+                                </StackPanel>
+                                <CheckBox x:Name="CaptureIndicatorToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Indicators_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Traffic light" />
                     <Border Style="{StaticResource Kannu.Card}">
                         <StackPanel>
@@ -518,6 +565,137 @@
                                     <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Claude Code and Cursor are told no before the call runs. Other agents' matches are reported only. Off by default: every match is reported." />
                                 </StackPanel>
                                 <CheckBox x:Name="EnforceToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="ADR" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Margin="0,0,0,8"
+                               Text="Uber's Agentic Detection and Response toolkit (Apache-2.0) is a separate install you own. Kannu never installs it: it runs the copy you installed and reads what it reports." />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE721;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="ADR Discovery" />
+                                    <TextBlock x:Name="AdrDiscoveryStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="Not checked yet" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Copy install command" Margin="0,0,8,0" Click="AdrCopyInstall_Click" />
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Check again" Click="AdrCheckAgain_Click" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE895;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Let Kannu run scans" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="Daily, when an agent's MCP servers change (at most every 5 minutes), and on Scan now. After a scan that fails: again in 1, 2, 4, 8, 16 hours. Off: Kannu only reads snapshots something else writes to its folder." />
+                                </StackPanel>
+                                <CheckBox x:Name="AdrRunScansToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="AdrToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE9D9;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Last scan" />
+                                    <TextBlock x:Name="AdrScanStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="No scan yet" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Open folder" VerticalAlignment="Center" Click="AdrOpenSnapshots_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE72E;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="ADR scan policy" />
+                                    <TextBlock x:Name="AdrPolicyStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="None" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Choose…" Margin="0,0,8,0" Click="AdrChoosePolicy_Click" />
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Clear" Click="AdrClearPolicy_Click" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE838;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="ADR tools folder" />
+                                    <TextBlock x:Name="AdrToolFolderStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Choose…" Margin="0,0,8,0" Click="AdrChooseToolFolder_Click" />
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Clear" Click="AdrClearToolFolder_Click" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE9F5;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Analyze chats with ADR Detection" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="Off by default. Judges one finished Claude Code chat you pick: its transcript is sent to Anthropic through your Claude login, by Claude Code running on this PC. Nothing is sent without your click. On Windows only the newest ~18,000 characters fit (Windows limits a command line to 32,767 characters); a chat that still does not fit returns an error, never a clean verdict." />
+                                </StackPanel>
+                                <CheckBox x:Name="AdrDetectionToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="AdrDetectionToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8B7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="ADR Detection folder" />
+                                    <TextBlock x:Name="AdrCheckoutStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="No checkout chosen" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Copy setup command" Margin="0,0,8,0" Click="AdrCopyClone_Click" />
+                                    <Button Style="{StaticResource Kannu.Button}" Content="Choose…" Click="AdrChooseCheckout_Click" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE9D2;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Analyze a finished chat…" />
+                                    <TextBlock x:Name="AdrAnalysisStatus" Style="{StaticResource Kannu.RowDescription}" TextWrapping="Wrap" Text="" />
+                                </StackPanel>
+                                <Button x:Name="AdrAnalyzeButton" Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Choose a chat…" VerticalAlignment="Center" Click="AdrAnalyze_Click" />
                             </Grid>
                         </StackPanel>
                     </Border>

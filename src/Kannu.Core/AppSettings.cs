@@ -70,6 +70,22 @@ public sealed record AppSettings
     /// <summary>Ctrl+Alt+K opens and closes the notch. Off by default: a global shortcut takes the keys from every app.</summary>
     public bool ShortcutsEnabled { get; init; }
 
+    // ADR (Uber's Agentic Detection and Response toolkit), a separate install (macOS defaults).
+    /// <summary>Kannu runs <c>adr-discovery</c> itself: daily, after MCP changes, on Scan now. On by default (only acts once ADR is installed).</summary>
+    public bool AdrRunScansEnabled { get; init; } = true;
+
+    /// <summary>An extra folder searched for <c>adr-discovery.exe</c> and <c>uv.exe</c>; empty for the standard places.</summary>
+    public string AdrToolDirectory { get; init; } = "";
+
+    /// <summary>ADR's tenant policy (<c>--policy</c>); empty for none.</summary>
+    public string AdrPolicyFile { get; init; } = "";
+
+    /// <summary>ADR Detection on a chat the user picks: sends that transcript to Anthropic. Off by default.</summary>
+    public bool AdrDetectionEnabled { get; init; }
+
+    /// <summary>The user's <c>ADR\Detection</c> checkout (after <c>uv sync</c>).</summary>
+    public string AdrDetectionCheckout { get; init; } = "";
+
     // Agent Security (macOS defaults).
     public bool DetectHiddenText { get; init; } = true;
     public bool WarnAgentAboutHiddenText { get; init; }
@@ -82,6 +98,15 @@ public sealed record AppSettings
 
     public bool PushHighFindings { get; init; } = true;
     public bool PushMediumFindings { get; init; }
+
+    /// <summary>Show a brightness bar on the notch whenever the screen's brightness changes. Off by default.</summary>
+    public bool BrightnessHud { get; init; }
+
+    /// <summary>Ctrl+Alt+F1 / F2 step the brightness down and up in fine (1/64) steps. Off by default.</summary>
+    public bool BrightnessShortcuts { get; init; }
+
+    /// <summary>A red dot on the notch while an app captures the screen (best effort). Off by default.</summary>
+    public bool RecordingIndicator { get; init; }
 
     /// <summary>The first-run welcome was shown.</summary>
     public bool OnboardingDone { get; init; }
@@ -170,7 +195,15 @@ public sealed record AppSettings
             HideInFullscreen = Bool(root, "hideInFullscreen") ?? defaults.HideInFullscreen,
             ShortcutsEnabled = Bool(root, "shortcutsEnabled") ?? false,
             OnboardingDone = Bool(root, "onboardingDone") ?? false,
+            BrightnessHud = Bool(root, "brightnessHud") ?? false,
+            BrightnessShortcuts = Bool(root, "brightnessShortcuts") ?? false,
+            RecordingIndicator = Bool(root, "recordingIndicator") ?? false,
             DetectHiddenText = Bool(root, "detectHiddenText") ?? true,
+            AdrRunScansEnabled = Bool(root, "adrRunScansEnabled") ?? true,
+            AdrToolDirectory = String(root, "adrToolDirectory") ?? "",
+            AdrPolicyFile = String(root, "adrPolicyFile") ?? "",
+            AdrDetectionEnabled = Bool(root, "adrDetectionEnabled") ?? false,
+            AdrDetectionCheckout = String(root, "adrDetectionCheckout") ?? "",
             WarnAgentAboutHiddenText = Bool(root, "warnAgentAboutHiddenText") ?? false,
             DetectSecrets = Bool(root, "detectSecrets") ?? true,
             DetectSensitivePaths = Bool(root, "detectSensitivePaths") ?? true,
@@ -221,7 +254,15 @@ public sealed record AppSettings
         root["hideInFullscreen"] = HideInFullscreen;
         root["shortcutsEnabled"] = ShortcutsEnabled;
         if (OnboardingDone) root["onboardingDone"] = true;
+        root["brightnessHud"] = BrightnessHud;
+        root["brightnessShortcuts"] = BrightnessShortcuts;
+        root["recordingIndicator"] = RecordingIndicator;
         root["detectHiddenText"] = DetectHiddenText;
+        root["adrRunScansEnabled"] = AdrRunScansEnabled;
+        root["adrToolDirectory"] = AdrToolDirectory;
+        root["adrPolicyFile"] = AdrPolicyFile;
+        root["adrDetectionEnabled"] = AdrDetectionEnabled;
+        root["adrDetectionCheckout"] = AdrDetectionCheckout;
         root["warnAgentAboutHiddenText"] = WarnAgentAboutHiddenText;
         root["detectSecrets"] = DetectSecrets;
         root["detectSensitivePaths"] = DetectSensitivePaths;

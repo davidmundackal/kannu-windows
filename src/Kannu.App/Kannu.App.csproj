@@ -44,6 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Management" Version="10.0.12" />
     <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 

@@ -113,6 +113,12 @@ public partial class NotchWindow : Window
         };
         model.AggregateChanged += _ => ApplyLights();
         KannuColors.Changed += ApplyLights;
+        model.HudShown += () =>
+        {
+            if (_settings.Current.HideInFullscreen && NativeMethods.IsFullscreenBusy()) return;
+            _presence.Hud(Now);
+            Apply();
+        };
         model.Activity += () =>
         {
             // A full-screen app, game or presentation is not interrupted; the tray eye still opens the notch.

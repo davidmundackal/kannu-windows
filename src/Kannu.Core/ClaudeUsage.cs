@@ -339,6 +339,69 @@ public static class UsageForecast
     }
 }
 
+/// <summary>
+/// The forecast's readings, kept across restarts (macOS <c>usageForecastSamples</c>): saved at most
+/// every 5 minutes, 8 days kept, in <c>%APPDATA%\Kannu\usage-samples.json</c>.
+/// </summary>
+public static class UsageSampleStore
+{
+    public const long PersistIntervalMs = 300_000;
+    public const long RetentionMs = 8L * 24 * 3600_000;
+
+    public static Dictionary<string, IReadOnlyList<UsageForecast.Sample>> Load(string path)
+    {
+        var result = new Dictionary<string, IReadOnlyList<UsageForecast.Sample>>();
+        JsonObject? root;
+        try
+        {
+            root = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject : null;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException)
+        {
+            return result;
+        }
+        if (root is null) return result;
+        foreach (var (key, value) in root)
+        {
+            if (value is not JsonArray list) continue;
+            var samples = new List<UsageForecast.Sample>();
+            foreach (var item in list.OfType<JsonObject>())
+            {
+                if (item["at"] is not JsonValue at || !at.TryGetValue<long>(out var atMs)
+                    || item["pct"] is not JsonValue pct || !pct.TryGetValue<double>(out var percent) || !double.IsFinite(percent)) continue;
+                long? reset = item["reset"] is JsonValue r && r.TryGetValue<long>(out var resetMs) ? resetMs : null;
+                samples.Add(new UsageForecast.Sample(atMs, Math.Clamp(percent, 0, 100), reset));
+            }
+            samples.Sort((a, b) => a.AtMs.CompareTo(b.AtMs));
+            if (samples.Count > UsageForecast.MaxSamples) samples.RemoveRange(0, samples.Count - UsageForecast.MaxSamples);
+            if (samples.Count > 0) result[key] = samples;
+        }
+        return result;
+    }
+
+    /// <summary>Drops readings older than 8 days (and windows left with none), then writes atomically.</summary>
+    public static void Save(string path, IDictionary<string, IReadOnlyList<UsageForecast.Sample>> samples, long nowMs)
+    {
+        var cutoff = nowMs - RetentionMs;
+        var root = new JsonObject();
+        foreach (var (key, list) in samples.OrderBy(s => s.Key, StringComparer.Ordinal))
+        {
+            var kept = new JsonArray();
+            foreach (var sample in list.Where(s => s.AtMs >= cutoff))
+            {
+                var item = new JsonObject { ["at"] = sample.AtMs, ["pct"] = sample.Percent };
+                if (sample.ResetsAtMs is { } reset) item["reset"] = reset;
+                kept.Add((JsonNode)item);
+            }
+            if (kept.Count > 0) root[key] = kept;
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var temp = path + ".tmp";
+        File.WriteAllText(temp, root.ToJsonString());
+        File.Move(temp, path, overwrite: true);
+    }
+}
+
 /// <summary>Near-limit notifications. Port of macOS <c>UsageAlertPolicy</c>.</summary>
 public static class UsageAlerts
 {

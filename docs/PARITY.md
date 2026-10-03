@@ -66,7 +66,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Cursor usage (`cursor.com/api/...`) | Kannu | **Doable** | Token from `state.vscdb` (already read) |
 | Antigravity session counts | Kannu | **Done** | A line on the Usage tab: sessions and last activity |
 | Model pricing (`pricing.json` from the repo), local token and cost totals | Kannu | **Doable** | Portable |
-| Usage forecast ("full by 3:40 PM"), near-limit alerts, "resumes at" on 429 stops | Kannu | **Done** | Forecast and alert rules ported with their constants; readings in memory. A Claude card stopped on its quota says "resumes 15:40" (the latest reset among full windows) |
+| Usage forecast ("full by 3:40 PM"), near-limit alerts, "resumes at" on 429 stops | Kannu | **Done** | Forecast and alert rules ported with their constants. Readings kept across restarts in `%APPDATA%\Kannu\usage-samples.json` (saved every 5 minutes, 8 days), as macOS does. A Claude card stopped on its quota says "resumes 15:40" |
 
 ## 4. Agent Security
 | Feature | Origin | Windows | How on Windows / why |
@@ -79,8 +79,8 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Security findings: one row per problem, acknowledge for a project or everywhere, snooze, reveal, copy for agent | Kannu | **Done** (acknowledge is everywhere only) | Settings › Security: grouped cards, Details, Acknowledge (back if it gets worse), Snooze 24 h, Show in folder, Copy for agent. Kept in `%APPDATA%\Kannu\security.json`, 50 per kind |
 | Shield cue in the closed notch | Kannu | **Done** | A shield beside the lights, never a light colour; the open notch pins the top high finding with Details and OK |
 | New-MCP-server watch | Kannu | **Done** | Every minute, Windows config paths plus session project folders; first look learns. Medium finding per new server |
-| **ADR Discovery** (Uber ADR, run by Kannu daily or on MCP change) | Kannu | **Not ported (D5)** | No verified Windows build to run |
-| **ADR Detection** (LLM analysis of one finished chat; claude-sonnet-5, optional gpt-4o triage) | Kannu | **Not ported (D5)** | Same; it would also send a transcript off the PC |
+| **ADR Discovery** (Uber ADR, run by Kannu daily or on MCP change) | Kannu | **Partial (upstream)** | Same schedule and finding mapping as macOS; Kannu runs `adr-discovery --json --dry-run` and saves the snapshot itself (ADR's own folder write fails on Windows). Upstream ADR's file checks don't work on Windows yet (`gate.py` root check, `os.open` on folders, macOS-only paths), so it sees processes, connections and installed apps only; Kannu always shows "partial coverage" |
+| **ADR Detection** (LLM analysis of one finished chat; claude-sonnet-5, optional gpt-4o triage) | Kannu | **Done** (no gpt-4o triage) | Opt-in with a consent prompt; "Analyze a finished chat…" lists the 10 newest Claude Code chats. Windows' 32,767-character command line caps the transcript at about 18,000 characters; longer is an error, never a clean verdict |
 
 ## 5. App shell
 | Feature | Origin | Windows | How on Windows / why |
@@ -126,10 +126,10 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Floating media controls | Doable | |
 | Media card opens the browser tab that is playing | **Partial** | GSMTC names the app, not the tab. The browser can be activated; the exact tab can't |
 | Fullscreen lock-screen artwork / wallpaper swap | **Can't** | Third parties can't draw on the Windows lock screen |
-| Media-key interception, fine steps | Doable (volume) / **Can't** (brightness) | `WH_KEYBOARD_LL` for `VK_VOLUME_*`. Brightness keys are firmware/OEM |
+| Media-key interception, fine steps | Doable (volume) / **Can't** (brightness keys) | Laptop brightness keys are handled by firmware and the maker's driver: no app can take them over. Fine brightness steps are done from Kannu's own Ctrl+Alt+F1/F2 (1/64), DDC/CI or WMI |
 | AirPods listening-mode (ANC/Transparency) HUD | **Can't** | No public API |
 | Volume HUD replacing Windows' flyout | Decide | Showing ours is doable; hiding Windows' flyout relies on an undocumented window hack |
-| Brightness HUD | Doable (laptops) | WMI `WmiMonitorBrightness`; external monitors via DDC/CI (`dxva2`) |
+| Brightness HUD | **Done** | Every change of the built-in panel (WMI `WmiMonitorBrightnessEvent`) and Kannu's own steps show a bar on the notch. Windows' own flyout still shows too. Off by default |
 | Custom OSD / vertical / circular HUD styles | Doable | WPF windows |
 | Keyboard backlight HUD | **Can't** | OEM-specific WMI only |
 | Caps Lock indicator | Doable | `WH_KEYBOARD_LL` + `GetKeyState` |
@@ -140,7 +140,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Mirror timers from the Clock app | **Can't** | Windows Clock has no API |
 | Focus / Do Not Disturb indicator | Doable (partial) | `SHQueryUserNotificationState` (quiet time); Win11 Focus sessions via `FocusSessionManager` |
 | Camera / mic in-use indicators | Decide | Doable via the CapabilityAccessManager ConsentStore registry, but Windows 11 already shows these in the tray |
-| Screen-recording indicator | **Can't** | No system signal on Windows |
+| Screen-recording indicator | **Partial (best effort)** | A red dot while an app uses Windows 11's screen-capture permission (CapabilityAccessManager consent store). Recorders using older methods (OBS by default) are not seen. Off by default |
 | Clipboard history | **Avoid (recommend)** | Windows has Win+V built in. Note: the macOS version records passwords too (no concealed-type filter); worth fixing there |
 | Downloads indicator | Doable | `FileSystemWatcher` on Downloads; Chromium `.crdownload`, Firefox `.part` |
 | Shelf (drop files on the notch, tray, drag out, actions) | Decide (D9) | Doable (OLE drag-drop, `IThumbnailCache`). Big |
@@ -163,7 +163,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
   - *Decided:* yes, off by default.
 - **D4 – "Fetch latest usage" button** (drives `claude /usage` in a hidden console).
   - *Decided:* skip for v1.
-- **D5 – ADR Discovery / Detection on Windows.** Depends on Uber ADR running on Windows, still unverified.
+- **D5 – ADR Discovery / Detection on Windows.** Done: Detection fully, Discovery partially until upstream ADR's file checks work on Windows.
   - *Decided:* Kannu's own checks and the policy first; ADR only if it runs cleanly on Windows.
 - **D6 – Pin the notch to all virtual desktops** (undocumented COM API that can break on Windows updates).
   - *Default taken:* yes, behind a try/fallback.
@@ -206,7 +206,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
    - findings UI and shield;
    - agent policy enforcement and editor;
    - MCP watch;
-   - ADR (D5).
+   - ADR (D5) (done; Discovery partial upstream).
 5. **Phase 6+ – inherited utilities** per D9.
 
 Each phase ships like Phase 1:

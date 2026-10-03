@@ -32,6 +32,8 @@ public partial class App : Application
     private ShortcutManager? _shortcuts;
     private UsageMonitor? _usage;
     private SecurityMonitor? _security;
+    private BrightnessManager? _brightness;
+    private ScreenCaptureMonitor? _capture;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -98,7 +100,12 @@ public partial class App : Application
             if (args.PropertyName == nameof(NotchViewModel.Summary)) _tray.SetSummary(model.Summary);
         };
 
-        _shortcuts = new ShortcutManager(settings, notch.ToggleFromTray);
+        _brightness = new BrightnessManager(settings, Dispatcher);
+        _brightness.Changed += level => model.ShowHud("\uE706", level);
+        var brightness = _brightness;
+        _shortcuts = new ShortcutManager(settings, notch.ToggleFromTray, brightness.Step);
+        _capture = new ScreenCaptureMonitor(settings);
+        _capture.Changed += model.UpdateCapture;
 
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         _usage = new UsageMonitor(statusDirectory, model);
@@ -185,6 +192,8 @@ public partial class App : Application
         _notifications?.Dispose();
         _shortcuts?.Dispose();
         _usage?.Dispose();
+        _brightness?.Dispose();
+        _capture?.Dispose();
         _security?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();

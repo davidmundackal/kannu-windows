@@ -35,6 +35,10 @@ public enum FindingSeverity
 public sealed record SecurityFinding
 {
     public required string Id { get; init; }
+
+    /// <summary>Who raised it: <c>kannu</c> (the hook and Kannu's own checks), <c>discovery</c> or <c>detection</c> (ADR).</summary>
+    public string Source { get; init; } = SecurityFindings.KannuSource;
+
     public required string Rule { get; init; }
     public required FindingSeverity Severity { get; init; }
     public required string Title { get; init; }
@@ -56,16 +60,19 @@ public sealed record SecurityFinding
     public int Occurrences { get; init; } = 1;
     public string? ChatName { get; init; }
 
+    /// <summary>The tool or server an ADR Discovery finding is about (or the chat, for ADR Detection).</summary>
+    public string? AssetName { get; init; }
+
     /// <summary>The problem's identity with the churning parts left out; null: a group of one.</summary>
     public string? GroupSubject { get; init; }
 
     /// <summary>For a policy match: "ran" or "blocked". A change brings an acknowledged group back.</summary>
     public string? OutcomeTag { get; init; }
 
-    public string GroupId => GroupSubject is null ? Id : SecurityFindings.StableId(Rule, GroupSubject, []);
+    public string GroupId => GroupSubject is null ? Id : SecurityFindings.StableId(Source, Rule, GroupSubject, []);
 
-    /// <summary>What a push carries: never <see cref="Summary"/>.</summary>
-    public string PushBody => $"{SecurityFindings.SeverityLabel(Severity)} severity, reported by Kannu. Details are in Settings › Security.";
+    /// <summary>What a push carries: severity and source, never <see cref="Summary"/>.</summary>
+    public string PushBody => $"{SecurityFindings.SeverityLabel(Severity)} severity, reported by {SecurityFindings.SourceName(Source)}. Details are in Settings › Security.";
 }
 
 /// <summary>One row in Settings: the findings that are one problem.</summary>
@@ -90,12 +97,24 @@ public static class SecurityFindings
     public const string UnattendedRule = "unattended_execution";
     public const string McpAddedRule = "mcp_server_added";
 
-    /// <summary>SHA-256 of rule, subject and evidence, first 12 bytes as hex (macOS's id, minus the source, which is always Kannu here).</summary>
-    public static string StableId(string rule, string subject, IEnumerable<string> evidence)
+    public const string KannuSource = "kannu";
+
+    /// <summary>SHA-256 of rule, subject and evidence, first 12 bytes as hex: macOS's id for Kannu's own checks.</summary>
+    public static string StableId(string rule, string subject, IEnumerable<string> evidence) => StableId(KannuSource, rule, subject, evidence);
+
+    /// <summary>macOS <c>AgentSecurityFinding.stableID(source:rule:subject:evidence:)</c>, byte for byte.</summary>
+    public static string StableId(string source, string rule, string subject, IEnumerable<string> evidence)
     {
-        var material = string.Join("\u001F", new[] { "kannu", rule, subject }.Concat(evidence));
+        var material = string.Join("\u001F", new[] { source, rule, subject }.Concat(evidence));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(material)), 0, 12).ToLowerInvariant();
     }
+
+    public static string SourceName(string source) => source switch
+    {
+        AdrSnapshot.Source => "ADR Discovery",
+        AdrAnalysis.Source => "ADR Detection",
+        _ => "Kannu's own check",
+    };
 
     /// <summary>A full path on this machine, or a Windows drive path read on any platform (tests run on Linux too).</summary>
     public static bool IsAbsolute(string path) =>
@@ -384,6 +403,13 @@ public sealed class SecurityState
     /// </summary>
     public Dictionary<string, SecurityFinding> Kept { get; } = [];
 
+    // ADR: Kannu-run Discovery scans and Detection verdicts (macOS adrLastKannuScanAt, adrKannuScanFailures,
+    // adrLastScan, adrSessionAnalyses).
+    public long? AdrLastKannuScanMs { get; set; }
+    public int AdrScanFailures { get; set; }
+    public AdrScanRecord? AdrLastScan { get; set; }
+    public List<AdrAnalysis> AdrAnalyses { get; set; } = [];
+
     public const int KeptPerKind = 50;
 
     /// <summary>The kind a rule belongs to, for the cap and for "turning a check off forgets it".</summary>
@@ -484,6 +510,18 @@ public sealed class SecurityState
                 state.McpAdditions.Add(new McpWatch.Addition(config, Str(item["app"]) ?? "", Str(item["projectRoot"]), Str(item["scope"]), name, Str(item["runs"]) ?? "", seen));
             }
         }
+        state.AdrLastKannuScanMs = Long(root["adrLastKannuScan"]);
+        state.AdrScanFailures = Math.Clamp(Int(root["adrScanFailures"]) ?? 0, 0, 10);
+        if (root["adrLastScan"] is JsonObject scan && Str(scan["file"]) is { } scanFile)
+        {
+            state.AdrLastScan = new AdrScanRecord(Long(scan["date"]) ?? 0, Str(scan["origin"]) ?? AdrScanRecord.OriginWatched, scanFile,
+                Int(scan["assets"]) ?? 0, Int(scan["findings"]) ?? 0, Int(scan["review"]) ?? 0, scan["complete"] is JsonValue c && c.TryGetValue<bool>(out var b) && b,
+                Int(scan["gaps"]) ?? 0, Str(scan["catalog"]) ?? "unknown", Str(scan["schema"]) ?? "", Str(scan["platform"]) ?? "");
+        }
+        if (root["adrAnalyses"] is JsonArray analyses)
+        {
+            state.AdrAnalyses = analyses.OfType<JsonObject>().Select(AdrAnalysis.FromJson).OfType<AdrAnalysis>().Take(AdrAnalysis.Cap).ToList();
+        }
         if (root["kept"] is JsonArray kept)
         {
             foreach (var item in kept.OfType<JsonObject>())
@@ -565,8 +603,12 @@ public sealed class SecurityState
             if (f.OutcomeTag is { } outcome) item["outcome"] = outcome;
             kept.Add((JsonNode)item);
         }
+        var analyses = new JsonArray();
+        foreach (var a in AdrAnalyses.Take(AdrAnalysis.Cap)) analyses.Add((JsonNode)a.ToJson());
         var doc = new JsonObject
         {
+            ["adrAnalyses"] = analyses,
+            ["adrScanFailures"] = AdrScanFailures,
             ["kept"] = kept,
             ["acknowledged"] = acks,
             ["snoozed"] = snoozed,
@@ -574,6 +616,16 @@ public sealed class SecurityState
             ["mcpBaseline"] = baseline,
             ["mcpAdditions"] = additions,
         };
+        if (AdrLastKannuScanMs is { } lastScan) doc["adrLastKannuScan"] = lastScan;
+        if (AdrLastScan is { } r)
+        {
+            doc["adrLastScan"] = new JsonObject
+            {
+                ["date"] = r.DateMs, ["origin"] = r.Origin, ["file"] = r.FileName, ["assets"] = r.AssetCount, ["findings"] = r.FindingCount,
+                ["review"] = r.ReviewCount, ["complete"] = r.CoverageComplete, ["gaps"] = r.CoverageGaps, ["catalog"] = r.CatalogVersion,
+                ["schema"] = r.SchemaVersion, ["platform"] = r.Platform,
+            };
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temp = path + ".tmp";
         File.WriteAllText(temp, doc.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));

@@ -115,6 +115,43 @@
                     </TextBlock.Style>
                 </TextBlock>
                 <!-- The traffic light: Classic shows all three (unlit ones dimmed), Minimal only the lit one. -->
+                <!-- Screen capture (best effort): a red recording dot. -->
+                <Ellipse Width="7" Height="7" Fill="#FFEF4444" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{Binding CaptureText}">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCapturing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <!-- A HUD (brightness): a glyph and a bar, in place of the lights for a moment. -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="{Binding HudGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="#E6FFFFFF"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Border Width="70" Height="5" CornerRadius="2.5" Background="#33FFFFFF" ClipToBounds="True" VerticalAlignment="Center">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding HudFilled}" />
+                                <ColumnDefinition Width="{Binding HudEmpty}" />
+                            </Grid.ColumnDefinitions>
+                            <Border CornerRadius="2.5" Background="#FFFFFFFF" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
                 <!-- A security finding: a shield, never a traffic-light colour (macOS SecurityShieldGlyph). -->
                 <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="#E6FFFFFF"
                            VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Security finding">
@@ -145,6 +182,10 @@
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding HasSessions}" Value="True">
                                     <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <!-- Later trigger wins: a HUD takes the lights' place for a moment. -->
+                                <DataTrigger Binding="{Binding HasHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

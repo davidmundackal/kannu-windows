@@ -4,6 +4,22 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - ADR, a brightness HUD, a screen-capture dot and a forecast that remembers
+- **Developer label:** "do all this" (forecast persistence, brightness keys, screen-recording indicator, "ADR scans … should be done")
+- **Agent label:** Port of macOS UsageAlertManager persistence and ADR integration (Discovery partial upstream on Windows), plus a brightness HUD and a best-effort capture indicator; shipped as v0.1.0-beta.10
+- **Changes:**
+  - `UsageSampleStore`: forecast readings in `%APPDATA%\Kannu\usage-samples.json`, saved every 5
+    minutes and on quit, 8 days kept. Tested.
+  - ADR: `AdrSnapshot`, `AdrDiscovery`, `AdrDetection`, `AdrAdapter` (Core) and `AdrRunner`:
+    macOS's schedule, backoff, finding mapping and Detection adapter; Discovery run as
+    `--json --dry-run` with Kannu saving the snapshot; Detection opt-in with an 18,000-character
+    transcript cap. ADR card in Settings › Security. docs/SECURITY.md. 37 tests.
+  - `BrightnessManager`: WMI brightness events show a bar on the notch (`NotchPresence.Hud`);
+    Ctrl+Alt+F1/F2 step by 1/64 through DDC/CI or WMI. Adds `System.Management`.
+  - `ScreenCaptureMonitor`: a red dot while Windows 11's screen-capture consent store shows an app
+    capturing. Settings › Notch › On the notch; all off by default.
+  - 548 tests.
+
 ### 2026-10-03 - WSL agents, hookless Codex and the remaining small gaps
 - **Developer label:** "anything else we have left out ?"
 - **Agent label:** Group A of the leftover plan (WSL D1, hookless Codex, click outside, chosen display, capture exclusion, restart/quit, memory guard, Antigravity count, resumes-at), shipped as v0.1.0-beta.9

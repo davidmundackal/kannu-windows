@@ -37,7 +37,11 @@ internal sealed class UsageMonitor : IDisposable
     private readonly string _claudeJson = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude.json");
     private readonly NotchViewModel _model;
     private readonly DispatcherTimer _timer;
-    private readonly Dictionary<string, IReadOnlyList<UsageForecast.Sample>> _samples = [];
+    private readonly string _samplesPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Kannu", "usage-samples.json");
+    private readonly Dictionary<string, IReadOnlyList<UsageForecast.Sample>> _samples;
+    private long _lastPersistMs;
+    private bool _samplesChanged;
     private readonly HashSet<string> _alerted = [];
     private (DateTime Statusline, DateTime Cache) _mtimes;
     private IReadOnlyList<UsageWindow> _statusline = [];
@@ -49,6 +53,8 @@ internal sealed class UsageMonitor : IDisposable
     {
         _statusFile = Path.Combine(statusDirectory, ClaudeUsage.FileName);
         _model = model;
+        // The forecast picks up where it left off: readings from before a restart still count.
+        _samples = UsageSampleStore.Load(_samplesPath);
         _timer = new DispatcherTimer { Interval = Interval };
         _timer.Tick += (_, _) => _ = RefreshAsync();
     }
@@ -99,7 +105,9 @@ internal sealed class UsageMonitor : IDisposable
         foreach (var window in windows)
         {
             var samples = _samples.TryGetValue(window.Key, out var held) ? held : [];
-            samples = UsageForecast.Admitting(new UsageForecast.Sample(window.ObservedAtMs, window.Percent, window.ResetsAtMs), samples);
+            var admitted = UsageForecast.Admitting(new UsageForecast.Sample(window.ObservedAtMs, window.Percent, window.ResetsAtMs), samples);
+            if (!ReferenceEquals(admitted, samples)) _samplesChanged = true;
+            samples = admitted;
             _samples[window.Key] = samples;
             var outlook = UsageForecast.For(samples, window, now);
             bars.Add(new UsageBar(window,
@@ -112,6 +120,7 @@ internal sealed class UsageMonitor : IDisposable
             }
         }
         _first = false;
+        if (_samplesChanged) Persist(force: false, now);
 
         var hint = windows.Count > 0 ? ""
             : HookSetup.UsageStatuslineInstalled
@@ -155,5 +164,24 @@ internal sealed class UsageMonitor : IDisposable
         }
     }
 
-    public void Dispose() => _timer.Stop();
+    private void Persist(bool force, long now)
+    {
+        if (!force && now - _lastPersistMs < UsageSampleStore.PersistIntervalMs) return;
+        try
+        {
+            UsageSampleStore.Save(_samplesPath, _samples, now);
+            _lastPersistMs = now;
+            _samplesChanged = false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            Diagnostics.Info($"usage samples not saved: {e.GetType().Name}");
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        if (_samplesChanged) Persist(force: true, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+    }
 }

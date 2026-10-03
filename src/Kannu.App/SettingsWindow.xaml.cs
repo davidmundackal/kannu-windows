@@ -317,6 +317,13 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void Indicators_Click(object sender, RoutedEventArgs e) => _settings.Update(s => s with
+    {
+        BrightnessHud = BrightnessHudToggle.IsChecked == true,
+        BrightnessShortcuts = BrightnessKeysToggle.IsChecked == true,
+        RecordingIndicator = CaptureIndicatorToggle.IsChecked == true,
+    });
+
     private void Capture_Click(object sender, RoutedEventArgs e) =>
         _settings.Update(s => s with { HideFromCapture = CaptureToggle.IsChecked == true });
 
@@ -343,6 +350,9 @@ public partial class SettingsWindow : Window
         EnforceToggle.IsChecked = s.EnforceAgentPolicy;
         PushHighToggle.IsChecked = s.PushHighFindings;
         PushMediumToggle.IsChecked = s.PushMediumFindings;
+        AdrRunScansToggle.IsChecked = s.AdrRunScansEnabled;
+        AdrDetectionToggle.IsChecked = s.AdrDetectionEnabled;
+        BuildAdr();
 
         var path = HookSecurity.PolicyPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         PolicyDescription.Text = !File.Exists(path)
@@ -375,11 +385,166 @@ public partial class SettingsWindow : Window
 
     private void OnFindingsChanged()
     {
-        if (SecurityPage.Visibility == Visibility.Visible) BuildFindings();
+        if (SecurityPage.Visibility != Visibility.Visible) return;
+        BuildFindings();
+        BuildAdr();
+    }
+
+    // ADR card: status from SecurityMonitor, settings through _settings. Kannu never installs ADR.
+
+    private void BuildAdr()
+    {
+        var s = _settings.Current;
+        var monitor = SecurityMonitor.Shared;
+        var tools = monitor?.AdrTools;
+        AdrDiscoveryStatus.Text = tools is null
+            ? "Checking…"
+            : tools.DiscoveryExe is { } exe
+                ? $"Installed{(tools.DiscoveryVersion is { } v ? " (" + v + ")" : "")} at {exe}. ADR on Windows sees processes, connections and installed apps; its file checks don't work on Windows yet (upstream), so every scan is partial."
+                : "Not installed. Copy the install command and run it in a terminal (needs uv), then press Check again.";
+
+        var lines = new List<string>();
+        if (monitor?.AdrScanning == true) lines.Add("Scanning…");
+        if (monitor?.AdrLastScan is { } scan)
+        {
+            var origin = scan.Origin == AdrScanRecord.OriginKannu ? "run by Kannu" : "found in the folder";
+            lines.Add($"{Local(scan.DateMs)} · {origin} · {scan.FindingCount} findings, {scan.AssetCount} assets");
+            lines.Add(scan.CoverageComplete
+                ? "Coverage: nothing reported unread."
+                : $"Partial coverage: {scan.CoverageGaps} places ADR could not read. Not a clean result.");
+        }
+        else if (monitor?.AdrScanning != true)
+        {
+            lines.Add("No snapshot yet.");
+        }
+        if (monitor?.AdrSnapshotError is { } snapshotError) lines.Add("Newest snapshot unreadable: " + snapshotError);
+        if (monitor?.AdrLastError is { } error) lines.Add("Last run failed: " + error);
+        if (monitor?.AdrLastKannuScanMs is { } last) lines.Add("Last run by Kannu: " + Local(last));
+        if (monitor?.AdrAutomatic == true)
+        {
+            lines.Add(monitor.AdrNextScanMs is { } next ? "Next automatic scan: " + Local(next) : "Next automatic scan: within a minute");
+        }
+        AdrScanStatus.Text = string.Join("\n", lines);
+        AdrRunScansToggle.IsEnabled = tools?.DiscoveryExe is not null;
+
+        AdrPolicyStatus.Text = s.AdrPolicyFile.Length == 0
+            ? "None. A JSON file with tenant_domains, approved and forbidden lists, passed to every scan as --policy."
+            : File.Exists(s.AdrPolicyFile) ? s.AdrPolicyFile : $"{s.AdrPolicyFile} is missing: scans fail until it is back or cleared.";
+        AdrToolFolderStatus.Text = s.AdrToolDirectory.Length == 0
+            ? @"Standard places: %USERPROFILE%\.local\bin (uv, pipx), uv's tool folder, PATH."
+            : s.AdrToolDirectory;
+
+        var checkout = tools is null ? "Checking…" : tools.CheckoutReason;
+        if (tools is not null && tools.Claude.Exe is null)
+        {
+            checkout += tools.Claude.CmdOnly
+                ? " · Only claude.cmd (npm) found: ADR Detection starts claude without a shell, which finds only claude.exe. Install Claude Code with the native installer."
+                : " · claude.exe not found on PATH.";
+        }
+        AdrCheckoutStatus.Text = checkout;
+
+        var analysis = new List<string>();
+        if (monitor?.IsAnalyzing == true) analysis.Add("Analyzing… (up to 7 minutes)");
+        if (monitor?.AdrAnalysisError is { } analysisError) analysis.Add("Failed: " + analysisError);
+        foreach (var a in (monitor?.AdrAnalyses ?? []).Take(3))
+        {
+            analysis.Add($"{a.ChatName ?? a.ConversationId[..Math.Min(8, a.ConversationId.Length)]}: ADR {a.ShortLabel} · {Local(a.DateMs)}");
+        }
+        if (analysis.Count == 0) analysis.Add(s.AdrDetectionEnabled ? "Pick one of your 10 newest Claude Code chats." : "Turn on Analyze chats with ADR Detection first.");
+        AdrAnalysisStatus.Text = string.Join("\n", analysis);
+        AdrAnalyzeButton.IsEnabled = s.AdrDetectionEnabled && tools?.DetectionReady == true && monitor?.IsAnalyzing != true;
+    }
+
+    private void AdrToggle_Click(object sender, RoutedEventArgs e) =>
+        _settings.Update(s => s with { AdrRunScansEnabled = AdrRunScansToggle.IsChecked == true });
+
+    private void AdrDetectionToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var on = AdrDetectionToggle.IsChecked == true;
+        if (on && MessageBox.Show(this,
+                "ADR Detection sends the transcript of a chat you pick to Anthropic, through your Claude login, by running Claude Code on this PC. " +
+                "It runs only when you choose a chat, one at a time. Nothing else leaves this PC.\n\nTurn on session analysis?",
+                "ADR Detection", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+        {
+            AdrDetectionToggle.IsChecked = false;
+            return;
+        }
+        _settings.Update(s => s with { AdrDetectionEnabled = on });
+        BuildAdr();
+    }
+
+    private void AdrCopyInstall_Click(object sender, RoutedEventArgs e) => Clipboard.SetText(AdrDiscovery.InstallCommand);
+
+    private void AdrCopyClone_Click(object sender, RoutedEventArgs e) => Clipboard.SetText(AdrDetection.CloneCommand);
+
+    private void AdrCheckAgain_Click(object sender, RoutedEventArgs e) => SecurityMonitor.Shared?.CheckAdr();
+
+    private void AdrOpenSnapshots_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = AdrDiscovery.SnapshotDirectory(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        Directory.CreateDirectory(folder);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
+    }
+
+    private void AdrChoosePolicy_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "JSON (*.json)|*.json", Title = "ADR scan policy" };
+        if (dialog.ShowDialog(this) == true) _settings.Update(s => s with { AdrPolicyFile = dialog.FileName });
+        BuildAdr();
+    }
+
+    private void AdrClearPolicy_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.Update(s => s with { AdrPolicyFile = "" });
+        BuildAdr();
+    }
+
+    private void AdrChooseToolFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Folder that holds adr-discovery.exe or uv.exe" };
+        if (dialog.ShowDialog(this) == true) _settings.Update(s => s with { AdrToolDirectory = dialog.FolderName });
+        BuildAdr();
+    }
+
+    private void AdrClearToolFolder_Click(object sender, RoutedEventArgs e)
+    {
+        _settings.Update(s => s with { AdrToolDirectory = "" });
+        BuildAdr();
+    }
+
+    private void AdrChooseCheckout_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = @"Your ADR\Detection folder (after uv sync)" };
+        if (dialog.ShowDialog(this) == true) _settings.Update(s => s with { AdrDetectionCheckout = dialog.FolderName });
+        BuildAdr();
+    }
+
+    /// <summary>The 10 newest Claude Code chats; each run is confirmed, naming what is sent and to whom.</summary>
+    private void AdrAnalyze_Click(object sender, RoutedEventArgs e)
+    {
+        var projects = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
+        var transcripts = AdrDetection.RecentTranscripts(projects, 10);
+        var menu = new ContextMenu { PlacementTarget = AdrAnalyzeButton };
+        if (transcripts.Count == 0) menu.Items.Add(new MenuItem { Header = "No Claude Code chats found", IsEnabled = false });
+        foreach (var t in transcripts)
+        {
+            var name = SecurityMonitor.Shared?.AdrAnalyses.FirstOrDefault(a => a.ConversationId == t.ConversationId)?.ChatName ?? t.Project;
+            var item = new MenuItem { Header = $"{name} · {Local(t.ModifiedMs)} · {t.Bytes / 1024:N0} KB" };
+            item.Click += async (_, _) =>
+            {
+                if (MessageBox.Show(this,
+                        $"Send this chat's transcript to Anthropic for ADR Detection?\n\n{t.Path}\n\nOnly the newest ~{AdrDetection.WindowsMaxCharacters:N0} characters fit on Windows; a chat that still does not fit returns an error.",
+                        "ADR Detection", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+                if (SecurityMonitor.Shared is { } monitor) await monitor.AnalyzeAsync(t);
+            };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
     }
 
     private async void ScanNow_Click(object sender, RoutedEventArgs e)
     {
+        // Also starts an ADR Discovery scan when ADR is installed.
         if (SecurityMonitor.Shared is { } monitor) await monitor.ScanNowAsync();
     }
 
@@ -625,6 +790,12 @@ public partial class SettingsWindow : Window
         DisplayChosen.IsChecked = s.Display == NotchDisplay.Chosen;
         BuildDisplayChoices(s);
         CaptureToggle.IsChecked = s.HideFromCapture;
+        BrightnessHudToggle.IsChecked = s.BrightnessHud;
+        BrightnessKeysToggle.IsChecked = s.BrightnessShortcuts;
+        CaptureIndicatorToggle.IsChecked = s.RecordingIndicator;
+        BrightnessKeysDescription.Text = s.BrightnessShortcuts && ShortcutManager.BrightnessTaken
+            ? "Another app already uses Ctrl+Alt+F1 or F2, so Kannu could not take them."
+            : "Small steps (1/64), on the display under the pointer: built-in screens, and external monitors that accept brightness commands (DDC/CI).";
         FullscreenToggle.IsChecked = s.HideInFullscreen;
         ShortcutToggle.IsChecked = s.ShortcutsEnabled;
         ShortcutDescription.Text = s.ShortcutsEnabled && ShortcutManager.Taken
