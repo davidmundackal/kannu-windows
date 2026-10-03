@@ -152,6 +152,13 @@ public sealed partial class AgentHookInstaller(AgentHookLayout layout, string ho
             {
             }
         }
+        try
+        {
+            UninstallUsageStatusline();
+        }
+        catch (Exception e) when (e is HookInstallException or IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     /// <summary>Any Kannu entry at all, even one an older version wrote with fewer events.</summary>

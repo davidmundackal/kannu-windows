@@ -354,6 +354,8 @@
 
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent hooks" />
                     <StackPanel x:Name="AgentRows" />
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Usage limits" />
+                    <StackPanel x:Name="UsageRows" />
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Status files" />
                     <Border Style="{StaticResource Kannu.Card}">
                         <Grid Style="{StaticResource RowGrid}">

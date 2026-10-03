@@ -104,6 +104,10 @@ public partial class NotchWindow : Window
 
         model.SessionsChanged += () =>
         {
+            if (_shown == NotchPresenceState.Open && !model.IsUsageTab) AnimateSize(open: true);
+        };
+        model.TabChanged += () =>
+        {
             if (_shown == NotchPresenceState.Open) AnimateSize(open: true);
         };
         model.AggregateChanged += _ => ApplyLights();
@@ -350,7 +354,9 @@ public partial class NotchWindow : Window
 
     private double ExpandedHeight()
     {
-        var content = _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight;
+        var content = _model.IsUsageTab
+            ? (_model.UsageBars.Count == 0 ? EmptyHeight + 18 : _model.UsageBars.Count * UsageBar.Height)
+            : _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight;
         // Leave room inside the window for the open motion's overshoot and the pill's offset.
         return Math.Min(ExpandedChrome + content, Height - 12 - PillTopOffset);
     }

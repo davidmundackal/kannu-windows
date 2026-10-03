@@ -564,6 +564,57 @@ public partial class SettingsWindow : Window
     {
         AgentRows.Children.Clear();
         foreach (var provider in Enum.GetValues<AgentProvider>()) AgentRows.Children.Add(AgentRow(provider));
+        BuildUsageRow();
+    }
+
+    /// <summary>Claude Code's plan limits on the notch's Usage tab, through Kannu's statusline.</summary>
+    private void BuildUsageRow()
+    {
+        UsageRows.Children.Clear();
+        var installed = HookSetup.UsageStatuslineInstalled;
+        var present = installed || HookSetup.ToolIsPresent(AgentProvider.Claude);
+
+        var grid = new Grid { MinHeight = 40 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.Children.Add(new TextBlock { Style = (Style)FindResource("Kannu.Icon"), Text = "\uE9D2", Margin = new Thickness(0, 0, 16, 0) });
+
+        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 24, 0) };
+        text.Children.Add(new TextBlock { Text = "Claude Code plan limits", Style = (Style)FindResource("Kannu.RowTitle") });
+        text.Children.Add(new TextBlock
+        {
+            Text = installed
+                ? "On. The notch's Usage tab shows your 5-hour and weekly limits. Your own statusline still shows in Claude Code."
+                : "Show your 5-hour and weekly limits on the notch's Usage tab. Kannu adds a statusline to Claude Code that saves them; a statusline you already have keeps showing. Nothing is fetched from the internet.",
+            Style = (Style)FindResource("Kannu.RowDescription"),
+        });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(text);
+
+        var button = new Button
+        {
+            Content = installed ? "Remove" : "Turn on",
+            Style = (Style)FindResource(installed ? "Kannu.Button" : "Kannu.AccentButton"),
+            IsEnabled = present,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        button.Click += (_, _) =>
+        {
+            try
+            {
+                if (installed) HookSetup.UninstallUsageStatusline();
+                else HookSetup.InstallUsageStatusline();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HookInstallException)
+            {
+                MessageBox.Show(this, ex.Message, "Kannu", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            BuildUsageRow();
+        };
+        Grid.SetColumn(button, 2);
+        grid.Children.Add(button);
+        UsageRows.Children.Add(new Border { Style = (Style)FindResource("Kannu.Card"), Child = grid });
     }
 
     private Border AgentRow(AgentProvider provider)

@@ -129,6 +129,14 @@ internal sealed class NotificationManager : IDisposable
         }
     }
 
+    /// <summary>A one-off notice (a usage limit nearly reached): a Windows notification and a phone push, whichever is on.</summary>
+    public void Alert(PushPayload payload)
+    {
+        var s = _settings.Current;
+        if (s.ToastsEnabled) _toast(payload.Title, payload.Body);
+        if (s.PushEnabled) _ = SendAsync(payload, null, null);
+    }
+
     /// <summary>Settings' "Send test": whatever is configured, even while notifications are off.</summary>
     public Task<string?> SendTestAsync() => SendAsync(PushPayload.Test, null, null);
 

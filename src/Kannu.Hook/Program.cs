@@ -22,6 +22,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Kannu.Core;
 
+if (args.Length > 0 && args[0] == "statusline") return Statusline();
+
 var invocation = HookInvocation.FromArgs(args);
 var copilotCli = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("COPILOT_CLI"));
 string output;
@@ -51,6 +53,32 @@ catch
 
 if (output.Length > 0) Console.Out.WriteLine(output);
 return 0;
+
+// Claude Code's statusline: saves its plan limits for the Usage tab, then shows the user's own
+// statusline (or Kannu's one-line summary). Always exits 0.
+static int Statusline()
+{
+    string line;
+    try
+    {
+        using var stdin = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
+        var buffer = new char[StatuslineRunner.MaxInputChars];
+        var read = stdin.ReadBlock(buffer, 0, buffer.Length);
+        var statusDirectory = Environment.GetEnvironmentVariable("KANNU_STATUS_DIR") is { Length: > 0 } overridden
+            ? overridden
+            : StatusPaths.DefaultStatusDirectory();
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        line = StatuslineRunner.Run(new string(buffer, 0, read), statusDirectory,
+            Path.Combine(home, ".kannu", "claude-statusline-chain.txt"),
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), TimeZoneInfo.Local);
+    }
+    catch (Exception)
+    {
+        line = "";
+    }
+    if (line.Length > 0) Console.Out.WriteLine(line);
+    return 0;
+}
 
 // A backstop to COPILOT_CLI: a terminal agent runs its hooks in a console whose window is on screen;
 // an editor's extension host spawns them with no console window or a hidden one.

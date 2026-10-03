@@ -4,6 +4,22 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - A Usage tab with Claude Code's plan limits
+- **Developer label:** "Usage and quota" ("where are we i need all those items shipped to test")
+- **Agent label:** Port of macOS Kannu's Claude usage statusline, ClaudeCachedUsage, UsageForecast and UsageAlertPolicy, shipped as v0.1.0-beta.7
+- **Changes:**
+  - `ClaudeUsage` (Core): the statusline input's `rate_limits` (and `model_scoped`) to macOS's
+    `claude-usage.json` shape; Claude Code's `~/.claude.json` cache, ignored for another login;
+    newest-wins merge, expired windows dropped. `UsageForecast` and `UsageAlerts` with macOS's
+    constants. Tested.
+  - `kannu-hook statusline`: writes the file, then draws the user's own statusline (kept in
+    `~/.kannu/claude-statusline-chain.txt`, run in Git Bash when found, else cmd) or a one-line
+    summary. Install, remove and uninstall-all restore the user's statusline. Tested.
+  - Notch Usage tab: a bar per window with reset countdown, severity colour and forecast caption.
+    `UsageMonitor` re-reads changed files every 30 s off the UI thread; near-limit notifications
+    once per window. Settings › Agents › Usage limits.
+  - 434 tests.
+
 ### 2026-10-03 - Settings search, a welcome window, monitor choice, fullscreen hide and a shortcut
 - **Developer label:** "Shell features: onboarding, shortcuts, multiple monitors, fullscreen hide, every virtual desktop, Settings search" ("where are we i need all those items shipped to test")
 - **Agent label:** Windows versions of macOS Kannu's onboarding, display placement, fullscreen hide, global shortcut and Settings search, shipped as v0.1.0-beta.6

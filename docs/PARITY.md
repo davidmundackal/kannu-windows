@@ -51,7 +51,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Raise the window whose title matches the project (Accessibility) | Kannu | **Doable** | `EnumWindows` + title match; no permission needed on Windows |
 | **Mobile push**: ntfy / Pushover / webhook, test button, 2 s debounce | Kannu | **Done** | Settings › Notifications. Same texts, priorities and URL policy as macOS; topic, keys and webhook URL in Windows Credential Manager |
 | "Still waiting on you" reminder push | Kannu | **Done** | `WaitReminder` ported with its rules (one per wait, overdue-at-start not sent); 5/10/15/30 min, off by default |
-| Pushes for security findings and usage limits | Kannu | **Doable** | Comes with §3 and §4 |
+| Pushes for security findings and usage limits | Kannu | **Partial** | Usage limits done; security findings come with §4 |
 | Local desktop notifications (toasts) | Windows only | **Done (D3)** | Off by default. Yellow and red, and the reminder, through the tray icon's notification |
 | **Notch skins** (image clipped to the notch, scrim) | Kannu | **Done** | Settings › Notch › Notch skin: PNG/JPG/BMP/GIF (first frame) copied to `%APPDATA%\Kannu\skins`, `ImageBrush` UniformToFill, "Darken the picture" scrim 0–90 %. SVG not supported |
 | Tray eye (menu-bar eye) | Kannu | **Done** (Restart doable) | Eye tinted by the light; left click opens the notch with its tabs (closes after 3 s unless the pointer is on it); menu: Open Kannu, Settings…, Agent hooks, status folder, updates, Quit |
@@ -60,13 +60,13 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 ## 3. Usage and quota
 | Feature | Origin | Windows | How on Windows / why |
 |---|---|---|---|
-| Usage tab (Claude 5 h / weekly / per-model bars, reset countdowns, severity colour) | Kannu | **Doable** | Claude Code on Windows supports a `statusLine` command, so `kannu-hook.exe` can write `claude-usage.json` (as `kannu-usage-status.sh` does on macOS). Fallbacks are `~/.claude.json` and Desktop's `plan-usage-history.json` under `%APPDATA%` |
+| Usage tab (Claude 5 h / weekly / per-model bars, reset countdowns, severity colour) | Kannu | **Done** | Settings › Agents › Usage limits adds `kannu-hook.exe statusline` to Claude Code (a user's own statusline is kept and still drawn); it writes `claude-usage.json` in macOS's shape. `~/.claude.json`'s cache is the fallback. Desktop's history file is not read yet |
 | "Fetch latest usage" (runs `claude` in a pty and types `/usage`) | Kannu | **Decide (D4)** | Doable through ConPTY, but fiddly and fragile |
 | Codex usage (`chatgpt.com/backend-api/wham/usage`) | Kannu | **Doable** | Token from `~/.codex/auth.json`; Credential Manager fallback |
 | Cursor usage (`cursor.com/api/...`) | Kannu | **Doable** | Token from `state.vscdb` (already read) |
 | Antigravity session counts | Kannu | **Doable** | From the hook files |
 | Model pricing (`pricing.json` from the repo), local token and cost totals | Kannu | **Doable** | Portable |
-| Usage forecast ("full by 3:40 PM"), near-limit alerts, "resumes at" on 429 stops | Kannu | **Doable** | Pure logic + tests port as is |
+| Usage forecast ("full by 3:40 PM"), near-limit alerts, "resumes at" on 429 stops | Kannu | **Done** ("resumes at" not yet) | Forecast and alert rules ported with their constants; readings kept in memory, so a restart starts the forecast over. Near-limit (95 % or critical) goes to Windows notifications and phone, once per window |
 
 ## 4. Agent Security
 | Feature | Origin | Windows | How on Windows / why |
@@ -95,7 +95,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Open on the display you are using (tray click) | Kannu | **Done** | Settings › Notch › Placement: main display, or the monitor the pointer is on each time the notch comes out; per-monitor DPI |
 | Hidden until something happens (agent activity reveals it for 7 s; hover keeps it out; 7 s after the pointer leaves) | Kannu | **Done** | `NotchPresence` (Core, tested). Windows reveals on light changes only (a chat appearing lit, a light turning green, yellow or red), not on every hook event as macOS does: the user's choice. Settings › Notch › "Stay hidden until something happens" (on) |
 | Reveal by resting the pointer at the top edge | Kannu | **Done, off by default** | macOS always allows it on hidden displays; on Windows it is opt-in (Settings › Notch). 20 Hz cursor poll only while hidden and enabled, 1 s dwell, macOS's entry zone |
-| Header, tabs, minimalistic UI mode | Atoll | **Partial** | Open notch has icon-only round tabs (80 ms hover selects, as macOS) and a Settings gear. Agents is the only tab until Usage and the D9 features land. Minimalistic mode: not needed while there is one tab |
+| Header, tabs, minimalistic UI mode | Atoll | **Done** | Open notch has icon-only round tabs (80 ms hover selects, as macOS): Agents and Usage, plus caffeinate and a Settings gear |
 | Hide Kannu from screenshots and recordings | Atoll | **Doable** | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` |
 | Custom app icon | Atoll | **Avoid** | No Dock icon on Windows; the tray eye is the identity |
 | Idle animations (shimmer, neon eyes, Lottie/video), 04:20 easter egg, first-launch hello | Atoll + Kannu | **Decide (D9)** | Doable (LottieSharp / MediaElement); purely decorative |

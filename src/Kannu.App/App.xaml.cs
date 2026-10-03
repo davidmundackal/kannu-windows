@@ -30,6 +30,7 @@ public partial class App : Application
     private CaffeinateManager? _caffeinate;
     private NotificationManager? _notifications;
     private ShortcutManager? _shortcuts;
+    private UsageMonitor? _usage;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -96,8 +97,10 @@ public partial class App : Application
         _shortcuts = new ShortcutManager(settings, notch.ToggleFromTray);
 
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
+        _usage = new UsageMonitor(statusDirectory, model);
         notch.Show();
         _monitor.Start();
+        _usage.Start();
         _updates.Start();
         WelcomeWindow.ShowOnce(settings, OpenSettingsAt);
 
@@ -118,6 +121,7 @@ public partial class App : Application
         _caffeinate?.Dispose();
         _notifications?.Dispose();
         _shortcuts?.Dispose();
+        _usage?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();

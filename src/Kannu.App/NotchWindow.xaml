@@ -186,12 +186,68 @@
                 </Grid>
 
                 <StackPanel x:Name="AgentsTab">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUsageTab}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
                     <ItemsControl Focusable="False" ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource RowTemplate}" />
                     <TextBlock Height="30" Text="Start an agent to see it here." Foreground="#99FFFFFF" FontSize="12">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Usage: Claude Code's plan limits, read locally. -->
+                <StackPanel x:Name="UsageTab" Visibility="Collapsed">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUsageTab}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <ItemsControl Focusable="False" ItemsSource="{Binding UsageBars}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Height="54">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Title}" Foreground="#FFFFFFFF" FontSize="12" />
+                                        <TextBlock Text="{Binding Reset}" Foreground="#80FFFFFF" FontSize="11" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding PercentText}" Foreground="#FFFFFFFF" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Border Height="6" CornerRadius="3" Margin="0,5,0,3" Background="#26FFFFFF" ClipToBounds="True">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding Filled}" />
+                                                <ColumnDefinition Width="{Binding Empty}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="3" Background="{Binding Brush}" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Text="{Binding Caption}" Foreground="{Binding CaptionBrush}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding UsageHint}" Foreground="#99FFFFFF" FontSize="12" TextWrapping="Wrap" MinHeight="30">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasUsage}" Value="True">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                 </Style.Triggers>

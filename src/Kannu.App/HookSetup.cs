@@ -72,6 +72,30 @@ internal static class HookSetup
         return $"{provider.DisplayName()} hooks removed.";
     }
 
+    public static bool UsageStatuslineInstalled => Installer.IsUsageStatuslineInstalled();
+
+    /// <returns>A message for the user.</returns>
+    /// <exception cref="HookInstallException">settings.json could not be safely edited; nothing was changed.</exception>
+    public static string InstallUsageStatusline()
+    {
+        if (!File.Exists(BundledHookPath))
+        {
+            throw new FileNotFoundException($"{HookExeName} was not found next to Kannu.exe.");
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(Installer.HookExePath)!);
+        CopyWithRetry(BundledHookPath, Installer.HookExePath);
+        Installer.InstallUsageStatusline();
+        Diagnostics.Info("Installed the Claude usage statusline");
+        return "Claude Code will report its limits from its next reply. Your own statusline, if you had one, still shows.";
+    }
+
+    public static string UninstallUsageStatusline()
+    {
+        Installer.UninstallUsageStatusline();
+        Diagnostics.Info("Removed the Claude usage statusline");
+        return "Removed. Claude Code's statusline is back to what it was.";
+    }
+
     /// <summary>
     /// Velopack runs this in the new version right after an install or update. Agents set up by the
     /// previous version are rewritten and the hook copied again, so they run this version's hook.

@@ -66,13 +66,52 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>An agent's light said something new (<see cref="AgentActivity.IsRevealWorthy"/>): reveal a hidden notch.</summary>
     public event Action? Activity;
 
-    /// <summary>
-    /// The open notch's tabs. Agents is the only one on Windows so far; Usage and the other macOS tabs
-    /// join as their features are ported (docs/PARITY.md).
-    /// </summary>
-    public IReadOnlyList<NotchTab> Tabs { get; } = [new("agents", "Agents", "\uE99A") { IsSelected = true }];
+    /// <summary>The open notch's tabs: Agents and Usage, as on macOS.</summary>
+    public IReadOnlyList<NotchTab> Tabs { get; } =
+    [
+        new("agents", "Agents", "\uE99A") { IsSelected = true },
+        new("usage", "Usage", "\uE9D2"),
+    ];
 
     public NotchTab SelectedTab => Tabs.FirstOrDefault(t => t.IsSelected) ?? Tabs[0];
+
+    public bool IsUsageTab => SelectedTab.Id == "usage";
+
+    /// <summary>The selected tab changed (the open notch may need a new height).</summary>
+    public event Action? TabChanged;
+
+    public NotchViewModel()
+    {
+        foreach (var tab in Tabs)
+        {
+            tab.PropertyChanged += (_, _) =>
+            {
+                if (!tab.IsSelected) return;
+                PropertyChanged?.Invoke(this, new(nameof(SelectedTab)));
+                PropertyChanged?.Invoke(this, new(nameof(IsUsageTab)));
+                TabChanged?.Invoke();
+            };
+        }
+    }
+
+    /// <summary>The Usage tab's bars, Claude's plan limits.</summary>
+    public ObservableCollection<UsageBar> UsageBars { get; } = [];
+
+    public bool HasUsage => UsageBars.Count > 0;
+
+    /// <summary>What the Usage tab says when it has no bars.</summary>
+    public string UsageHint { get; private set; } = "";
+
+    public void UpdateUsage(IReadOnlyList<UsageBar> bars, string hint)
+    {
+        var countChanged = bars.Count != UsageBars.Count;
+        UsageBars.Clear();
+        foreach (var bar in bars) UsageBars.Add(bar);
+        UsageHint = hint;
+        PropertyChanged?.Invoke(this, new(nameof(UsageHint)));
+        PropertyChanged?.Invoke(this, new(nameof(HasUsage)));
+        if (countChanged && IsUsageTab) TabChanged?.Invoke();
+    }
 
     private IReadOnlyList<AgentSession> _previous = [];
 
@@ -160,6 +199,43 @@ internal sealed class NotchTab(string id, string label, string glyph) : INotifyP
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+}
+
+/// <summary>One bar on the Usage tab. Immutable: every reading rebuilds it.</summary>
+internal sealed class UsageBar
+{
+    public const double Height = 54;
+
+    public UsageBar(UsageWindow window, string? reset, (string Text, bool IsWarning)? caption)
+    {
+        Title = window.Title;
+        PercentText = $"{Math.Round(window.Percent):0}%";
+        var fraction = Math.Clamp(window.Percent / 100, 0, 1);
+        // Never an empty-looking bar for a few percent; the label carries the exact number.
+        Filled = new System.Windows.GridLength(Math.Max(fraction, 0.02), System.Windows.GridUnitType.Star);
+        Empty = new System.Windows.GridLength(1 - Math.Max(fraction, 0.02), System.Windows.GridUnitType.Star);
+        // Claude's own severity first, else the macOS thresholds.
+        var color = window.Severity switch
+        {
+            "critical" => "#FFEF4444",
+            "warning" => "#FFF59E0B",
+            _ => fraction > 0.95 ? "#FFEF4444" : fraction > 0.9 ? "#FFF59E0B" : "#FF60A5FA",
+        };
+        Brush = (Brush)new BrushConverter().ConvertFromString(color)!;
+        Brush.Freeze();
+        Reset = reset is null ? "" : "resets in " + reset;
+        Caption = caption?.Text ?? "";
+        CaptionBrush = caption is { IsWarning: true } ? Brushes.Orange : new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+    }
+
+    public string Title { get; }
+    public string PercentText { get; }
+    public System.Windows.GridLength Filled { get; }
+    public System.Windows.GridLength Empty { get; }
+    public Brush Brush { get; }
+    public string Reset { get; }
+    public string Caption { get; }
+    public Brush CaptionBrush { get; }
 }
 
 /// <summary>One card. Immutable: a status change rebuilds the row.</summary>
