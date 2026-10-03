@@ -38,6 +38,25 @@ public sealed class HookRunnerTests : IDisposable
         StatusStore.Read(Path.Combine(Dir, $"{provider}-{session}.json"));
 
     [Fact]
+    public void TheHostWindowIsRecordedAndKeptWhenAnEventFindsNone()
+    {
+        HookRunner.Run(new HookInvocation("thinking", "claude", "UserPromptSubmit", ""), """{"session_id":"h1"}""", Dir, T0,
+            new HookEnvironment(false, false, Home, new HookHost(42, "WindowsTerminal", null)));
+        Assert.Equal(42, Status("h1")!.HostPid);
+        Assert.Equal("WindowsTerminal", Status("h1")!.HostName);
+
+        Run("executing", "PreToolUse", """{"session_id":"h1","tool_name":"Bash"}""", T0 + 1_000);
+        Assert.Equal(42, Status("h1")!.HostPid);
+
+        HookRunner.Run(new HookInvocation("stopped", "claude", "Stop", ""), """{"session_id":"h1"}""", Dir, T0 + 2_000,
+            new HookEnvironment(false, true, Home, new HookHost(null, null, 0x1234)));
+        var moved = Status("h1")!;
+        Assert.Null(moved.HostPid);
+        Assert.Null(moved.HostName);
+        Assert.Equal(0x1234, moved.HostWindow);
+    }
+
+    [Fact]
     public void ASessionLifecycleWritesThenDeletesItsFile()
     {
         Run("idle", "SessionStart", """{"session_id":"s1","source":"startup","cwd":"/home/me/kannu"}""", T0);

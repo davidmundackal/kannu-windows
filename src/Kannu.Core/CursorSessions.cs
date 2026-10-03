@@ -155,6 +155,8 @@ public static class CursorSessions
             ExecutionStartedAtMs = winner.ExecutionStartedAtMs ?? loser.ExecutionStartedAtMs,
             Cwd = winner.Cwd ?? loser.Cwd,
             HostPid = winner.HostPid ?? loser.HostPid,
+            HostName = winner.HostPid is null ? loser.HostName : winner.HostName,
+            HostWindow = winner.HostWindow ?? loser.HostWindow,
         }).CarryingExtras(winner).CarryingExtras(loser);
 
         // A host and the engine it embeds report one conversation: the host names the card.
@@ -210,6 +212,8 @@ public static class CursorSessions
                     ExecutionStartedAtMs = merged.ExecutionStartedAtMs ?? existing.ExecutionStartedAtMs ?? candidate.ExecutionStartedAtMs,
                     Cwd = existing.Cwd ?? candidate.Cwd,
                     HostPid = existing.HostPid ?? candidate.HostPid,
+                    HostName = existing.HostPid is null ? candidate.HostName : existing.HostName,
+                    HostWindow = existing.HostWindow ?? candidate.HostWindow,
                 }).CarryingExtras(existing).CarryingExtras(candidate);
             }
             else

@@ -137,6 +137,12 @@ public sealed record AgentSession
     /// <summary>The agent process itself (Claude passive sessions); its parent chain leads to the host window.</summary>
     public int? HostPid { get; init; }
 
+    /// <summary>The program <see cref="HostPid"/> was recorded running; null when the pid is known alive.</summary>
+    public string? HostName { get; init; }
+
+    /// <summary>A classic console window the agent runs in (hook sessions, Windows).</summary>
+    public long? HostWindow { get; init; }
+
     /// <summary>Claude Desktop's own id for a Code-tab chat, for click-through.</summary>
     public string? DesktopSessionId { get; init; }
 
@@ -164,6 +170,8 @@ public sealed record AgentSession
             ProjectName = ProjectName ?? identity.ProjectName,
             Cwd = Cwd ?? identity.Cwd,
             HostPid = HostPid ?? identity.HostPid,
+            HostName = HostPid is null ? identity.HostName : HostName,
+            HostWindow = HostWindow ?? identity.HostWindow,
         }).CarryingExtras(identity);
 
     /// <summary>

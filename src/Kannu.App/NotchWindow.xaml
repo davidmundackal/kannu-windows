@@ -14,7 +14,9 @@
     <Window.Resources>
         <!-- A card: light, agent icon, chat title, and below it agent · state · run time · tools · tokens. -->
         <DataTemplate x:Key="RowTemplate">
-            <Grid Height="40">
+            <!-- Click-through: a click brings the agent's window forward. Transparent so the whole row is hit. -->
+            <Grid Height="40" Background="Transparent" Cursor="Hand" ToolTip="Show this agent's window"
+                  MouseLeftButtonUp="Row_MouseLeftButtonUp">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />

@@ -157,6 +157,7 @@ internal sealed class SessionRow
 
     public SessionRow(AgentSession session, long nowMs, TurnTokens? tokens)
     {
+        Session = session;
         Icon = ProviderIcons.For(session.Provider);
         // The chat's title when it has a real one, else its project: never "Untitled chat" when
         // something better is known.
@@ -180,6 +181,7 @@ internal sealed class SessionRow
         Detail = string.Join(" · ", parts);
     }
 
+    public AgentSession Session { get; }
     public string Title { get; }
     public string Detail { get; }
     public Brush Brush { get; }

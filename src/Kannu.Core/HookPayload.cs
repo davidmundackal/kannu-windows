@@ -35,7 +35,11 @@ public sealed record HookInvocation(string ArgState, string Provider, string Hoo
 /// <param name="CopilotCli">The <c>COPILOT_CLI</c> variable is set (Copilot CLI sets it for what it spawns).</param>
 /// <param name="HasConsole">The hook runs attached to a visible console: a terminal agent, not an editor's extension host.</param>
 /// <param name="Home">The user profile folder.</param>
-public sealed record HookEnvironment(bool CopilotCli, bool HasConsole, string Home);
+/// <param name="Host">Where the agent's window is, for click-through; null when it could not be found.</param>
+public sealed record HookEnvironment(bool CopilotCli, bool HasConsole, string Home, HookHost? Host = null);
+
+/// <summary>The window an agent runs in: its owning process, or a classic console window.</summary>
+public sealed record HookHost(int? Pid, string? Name, long? Window);
 
 /// <summary>
 /// The hook's stdin JSON, read leniently: missing, wrong-typed or non-object input reads as an empty

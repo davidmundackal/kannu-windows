@@ -18,6 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Click-through: records the window the agent runs in. Shared with the app. -->
+    <Compile Include="..\Shared\HostProcess.cs" Link="HostProcess.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Kannu.Core\Kannu.Core.csproj" />
   </ItemGroup>
 

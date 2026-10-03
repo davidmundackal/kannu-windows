@@ -25,7 +25,13 @@
          framework messages back. -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <StartupObject>Kannu.App.Program</StartupObject>
+    <!-- LibraryImport in the shared click-through code generates marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- Click-through: brings an agent's window forward. Shared with the hook. -->
+    <Compile Include="..\Shared\HostProcess.cs" Link="HostProcess.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Shown by the Terms of Use gate and Settings › About. -->

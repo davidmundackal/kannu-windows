@@ -4,6 +4,20 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Click an agent on the notch to bring its window forward
+- **Developer label:** "Click-through" ("where are we i need all those items shipped to test")
+- **Agent label:** Port of macOS Kannu's click-through for Windows (D2: the window, not the exact tab)
+- **Changes:**
+  - `HostWindow` (Core): walk up the process parents to the first one with a window, stopping at the
+    shell and at a parent younger than its child (reused pid); pick the window naming the project;
+    trust a recorded pid only while it runs the recorded program. Tested.
+  - The hook records `host_pid`/`host_name` (or `host_window` for a classic console) in the status
+    file; an event that finds none keeps the recorded one. `src/Shared/HostProcess.cs` holds the
+    Win32 side for both the hook and the app.
+  - Notch rows are clickable: the recorded host, else the provider's running app, comes forward.
+    Nothing found: a beep and a log line, never a wrong window.
+  - 402 tests.
+
 ### 2026-10-03 - Choose the traffic-light style, colours and a notch skin
 - **Developer label:** "Traffic-light styles (Classic/Minimal, colours, breathing/blink) and notch skins" ("where are we i need all those items shipped to test")
 - **Agent label:** Port of macOS Kannu's light style, colour palette and notch skins onto the WPF notch, shipped as v0.1.0-beta.4

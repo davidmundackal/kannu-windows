@@ -43,9 +43,9 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Feature | Origin | Windows | How on Windows / why |
 |---|---|---|---|
 | **Caffeinate**, smart + manual (cup in the panel, onboarding step) | Kannu | **Done** (onboarding step pending) | Sun button in the open notch (amber while held) and Settings › Agents › Keep the PC awake. Decision and transition tables ported with their tests; `PowerCreateRequest` + `PowerSetRequest(PowerRequestSystemRequired)`, the same semantics as `caffeinate -i`: the display may still sleep, and the lid follows power policy. Port `shouldKeepAwake` / `caffeinateTransition` and their decision-table tests unchanged |
-| **Click-through**: IDE chats | Kannu | **Doable** | Activate a running Cursor/Code window by its process (`AllowSetForegroundWindow` plus a foreground-lock workaround), or launch `cursor`/`code <folder>` |
-| Click-through: Claude Desktop chat (`claude://…epitaxy/<id>`, `claude://resume`) | Kannu | **Doable** | Only if Claude Desktop for Windows registers `claude://`; verify first. Read Desktop's session index under `%APPDATA%\Claude` |
-| Click-through: CLI agent's terminal window | Kannu | **Doable** | Walk the process parents (Toolhelp32 / `NtQueryInformationProcess`) up to Windows Terminal, conhost, VS Code or Cursor, then bring that window forward |
+| **Click-through**: IDE chats | Kannu | **Done** | Clicking a row brings the editor's window forward: the hook records the window-owning ancestor (`host_pid`, `host_name`), the app picks that process's window whose title names the project. Without a hook record, the provider's running app. Launching `code <folder>` when nothing runs is not done |
+| Click-through: Claude Desktop chat (`claude://…epitaxy/<id>`, `claude://resume`) | Kannu | **Partial** | Claude Desktop's window comes forward (D2); opening the exact chat by URL is not done. |
+| Click-through: CLI agent's terminal window | Kannu | **Done** | The hook walks its process parents (`NtQueryInformationProcess`, start times guard reused pids) up to Windows Terminal, VS Code or Cursor, or records a classic console window; the app brings it forward, borrowing the front window's input queue when Windows refuses |
 | Click-through: the **exact tab** (macOS: Terminal/iTerm2 via AppleScript) | Kannu | **Decide (D2)** | Windows Terminal has no "select tab for this process" API. UI Automation can select a tab by title, but only best-effort |
 | Click-through: tmux pane | Kannu | **Can't (native)** | tmux exists only inside WSL. Revisit with D1 |
 | Raise the window whose title matches the project (Accessibility) | Kannu | **Doable** | `EnumWindows` + title match; no permission needed on Windows |
@@ -193,7 +193,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 2. **Phase 3 – Kannu's agent extras:**
    - light style, palette, breathing and blink (done);
    - caffeinate (done);
-   - click-through (D2);
+   - click-through (D2) (done);
    - mobile push + reminder;
    - toasts (D3);
    - notch skins (done);

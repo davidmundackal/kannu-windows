@@ -437,5 +437,17 @@ public partial class NotchWindow : Window
 
     private void Settings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
 
+    /// <summary>Click-through (D2): the agent's window comes forward; the exact tab is not chosen.</summary>
+    private void Row_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.DataContext is not SessionRow row) return;
+        e.Handled = true;
+        if (!Kannu.Shared.HostProcess.Activate(row.Session))
+        {
+            Diagnostics.Info($"click-through: no window for a {row.Session.Provider} session");
+            System.Media.SystemSounds.Beep.Play();
+        }
+    }
+
     private void Caffeinate_Click(object sender, RoutedEventArgs e) => CaffeinateRequested?.Invoke();
 }

@@ -38,7 +38,8 @@ try
     var environment = new HookEnvironment(
         copilotCli,
         HasConsoleWindow(),
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        Kannu.Shared.HostProcess.FindForHook());
 
     output = HookRunner.Run(invocation, new string(buffer, 0, read), statusDirectory,
         DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), environment).Output;

@@ -167,6 +167,7 @@ public static class HookRunner
             if (unattended) held.Unattended = true;
             held.EndedOnError = null;
             ApplyTurn(held, turn, transcript);
+            ApplyHost(held, environment.Host);
             TryWrite(statusFile, held);
             return result with { Decision = HookDecision.Write(RawStateWire.Parse(existingState) ?? RawState.AwaitingInput) };
         }
@@ -186,6 +187,10 @@ public static class HookRunner
             ParentId = NullIfEmpty(parentId),
         };
         ApplyTurn(record, turn, transcript);
+        record.HostPid = existing?.HostPid;
+        record.HostName = existing?.HostName;
+        record.HostWindow = existing?.HostWindow;
+        ApplyHost(record, environment.Host);
         TryWrite(statusFile, record);
         return result with { Decision = HookDecision.Write(state) };
     }
@@ -218,6 +223,15 @@ public static class HookRunner
         record.TurnToolIds = turn is null ? null : [.. turn.ToolIds];
         record.TurnTranscriptOffset = turn?.TranscriptOffset;
         record.TranscriptPath = NullIfEmpty(transcript);
+    }
+
+    /// <summary>A host found by this event replaces the recorded one; none found keeps it.</summary>
+    private static void ApplyHost(StatusRecord record, HookHost? host)
+    {
+        if (host is null || (host.Pid is null && host.Window is null)) return;
+        record.HostPid = host.Pid;
+        record.HostName = host.Pid is null ? null : NullIfEmpty(host.Name ?? "");
+        record.HostWindow = host.Window;
     }
 
     /// <summary>A full disk or a path replaced by a directory must not cost the agent its stdout line.</summary>

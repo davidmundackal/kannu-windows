@@ -83,6 +83,20 @@ public sealed class StatusRecord
     [JsonPropertyName("transcript_path")]
     public string? TranscriptPath { get; set; }
 
+    /// <summary>
+    /// Windows only, for click-through: the process owning the window the agent runs in (an editor,
+    /// Windows Terminal, Claude Desktop) and its name, so a reused pid is not trusted.
+    /// </summary>
+    [JsonPropertyName("host_pid")]
+    public int? HostPid { get; set; }
+
+    [JsonPropertyName("host_name")]
+    public string? HostName { get; set; }
+
+    /// <summary>Windows only: the classic console window a terminal agent runs in, as a number.</summary>
+    [JsonPropertyName("host_window")]
+    public long? HostWindow { get; set; }
+
     /// <summary>Status files are untrusted input: any process running as the user can write one.</summary>
     internal const int MaxFileBytes = 64 * 1024;
 
@@ -137,6 +151,9 @@ public sealed class StatusRecord
                 TurnToolIds = ids.Count > 0 ? ids : null,
                 TurnTranscriptOffset = Count(root, "turn_transcript_offset"),
                 TranscriptPath = Str(root, "transcript_path"),
+                HostPid = (int?)Count(root, "host_pid", int.MaxValue),
+                HostName = Str(root, "host_name"),
+                HostWindow = Count(root, "host_window"),
             };
         }
         catch (JsonException)
