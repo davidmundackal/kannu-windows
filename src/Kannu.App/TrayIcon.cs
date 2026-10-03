@@ -126,6 +126,9 @@ internal sealed class TrayIcon : IDisposable
     }
 
     /// <summary>The hover tooltip; Windows caps it at 63 characters.</summary>
+    /// <summary>A Windows notification from the tray icon (shown as a toast on Windows 10 and 11).</summary>
+    public void ShowToast(string title, string body) => _icon.ShowBalloonTip(5000, title, body, ToolTipIcon.Info);
+
     public void SetSummary(string summary)
     {
         var text = $"Kannu · {summary}";

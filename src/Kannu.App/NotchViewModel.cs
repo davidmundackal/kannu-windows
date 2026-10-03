@@ -38,6 +38,11 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>The most urgent light changed (for the tray icon).</summary>
     public event Action<TrafficLight>? AggregateChanged;
 
+    /// <summary>The aggregate light's state changed, thinking and executing told apart (for notifications).</summary>
+    public event Action<AgentLightState>? StateChanged;
+
+    private AgentLightState _state = AgentLightState.Inactive;
+
     /// <summary>The session list was rebuilt (the expanded notch may need a new height).</summary>
     public event Action? SessionsChanged;
 
@@ -102,6 +107,12 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         {
             Aggregate = aggregate;
             AggregateChanged?.Invoke(aggregate);
+        }
+
+        if (result.Light != _state)
+        {
+            _state = result.Light;
+            StateChanged?.Invoke(_state);
         }
 
         if (countChanged) SessionsChanged?.Invoke();

@@ -49,10 +49,10 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Click-through: the **exact tab** (macOS: Terminal/iTerm2 via AppleScript) | Kannu | **Decide (D2)** | Windows Terminal has no "select tab for this process" API. UI Automation can select a tab by title, but only best-effort |
 | Click-through: tmux pane | Kannu | **Can't (native)** | tmux exists only inside WSL. Revisit with D1 |
 | Raise the window whose title matches the project (Accessibility) | Kannu | **Doable** | `EnumWindows` + title match; no permission needed on Windows |
-| **Mobile push**: ntfy / Pushover / webhook, test button, 2 s debounce | Kannu | **Doable** | Plain HTTPS. Secrets go in Windows Credential Manager (DPAPI) instead of Keychain |
-| "Still waiting on you" reminder push | Kannu | **Doable** | Pure logic (`AgentWaitReminder`) + tests |
+| **Mobile push**: ntfy / Pushover / webhook, test button, 2 s debounce | Kannu | **Done** | Settings › Notifications. Same texts, priorities and URL policy as macOS; topic, keys and webhook URL in Windows Credential Manager |
+| "Still waiting on you" reminder push | Kannu | **Done** | `WaitReminder` ported with its rules (one per wait, overdue-at-start not sent); 5/10/15/30 min, off by default |
 | Pushes for security findings and usage limits | Kannu | **Doable** | Comes with §3 and §4 |
-| Local desktop notifications (toasts) | Windows only | **Decide (D3)** | macOS Kannu has none (mobile push only). Windows toasts would be new |
+| Local desktop notifications (toasts) | Windows only | **Done (D3)** | Off by default. Yellow and red, and the reminder, through the tray icon's notification |
 | **Notch skins** (image clipped to the notch, scrim) | Kannu | **Done** | Settings › Notch › Notch skin: PNG/JPG/BMP/GIF (first frame) copied to `%APPDATA%\Kannu\skins`, `ImageBrush` UniformToFill, "Darken the picture" scrim 0–90 %. SVG not supported |
 | Tray eye (menu-bar eye) | Kannu | **Done** (Restart doable) | Eye tinted by the light; left click opens the notch with its tabs (closes after 3 s unless the pointer is on it); menu: Open Kannu, Settings…, Agent hooks, status folder, updates, Quit |
 | Shortcuts off by default; launch at login on by default | Kannu | **Doable** | §5 |
@@ -194,8 +194,8 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
    - light style, palette, breathing and blink (done);
    - caffeinate (done);
    - click-through (D2) (done);
-   - mobile push + reminder;
-   - toasts (D3);
+   - mobile push + reminder (done);
+   - toasts (D3) (done);
    - notch skins (done);
    - Detected Editors;
    - hookless Codex;

@@ -28,6 +28,7 @@ public partial class App : Application
     private UpdateService? _updates;
     private FreezeWatchdog? _watchdog;
     private CaffeinateManager? _caffeinate;
+    private NotificationManager? _notifications;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -81,6 +82,10 @@ public partial class App : Application
         notch.CaffeinateRequested += _caffeinate.ToggleManual;
         _tray = new TrayIcon(notch.ToggleFromTray, OpenSettings, statusDirectory, _updates, Shutdown);
         model.AggregateChanged += _tray.SetLight;
+        var tray = _tray;
+        _notifications = new NotificationManager(settings, tray.ShowToast);
+        model.StateChanged += _notifications.StateChanged;
+        model.Updated += _notifications.Update;
         model.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(NotchViewModel.Summary)) _tray.SetSummary(model.Summary);
@@ -106,6 +111,7 @@ public partial class App : Application
         _monitor?.Dispose();
         _watchdog?.Dispose();
         _caffeinate?.Dispose();
+        _notifications?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();

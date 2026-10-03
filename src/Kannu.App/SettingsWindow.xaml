@@ -53,6 +53,12 @@
                         <TextBlock Text="Agents" FontSize="14" VerticalAlignment="Center" />
                     </StackPanel>
                 </ListBoxItem>
+                <ListBoxItem Tag="Notifications">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xEA8F;" Margin="0,0,14,0" />
+                        <TextBlock Text="Notifications" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
                 <ListBoxItem Tag="About">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE946;" Margin="0,0,14,0" />
@@ -297,6 +303,176 @@
                             </StackPanel>
                             <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Open" Click="OpenStatusFolder_Click" />
                         </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Notifications -->
+                <StackPanel x:Name="NotificationsPage" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Notifications" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Margin="0,-8,0,16"
+                               Text="Only fixed texts are sent, such as &quot;Agent Needs Input&quot;. Chat names, prompts, files and project names never leave your PC." />
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="On this PC" Margin="0,0,0,8" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7E7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Windows notifications" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="When an agent needs you or finishes, Windows shows a notification. Focus assist and Do not disturb still apply." />
+                                </StackPanel>
+                                <CheckBox x:Name="ToastToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Notify_Click" />
+                            </Grid>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="On your phone" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8EA;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Phone notifications" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Send each change of the light to your phone through ntfy or Pushover, or to your own webhook." />
+                                </StackPanel>
+                                <CheckBox x:Name="PushToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Notify_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <StackPanel Margin="36,8,0,8">
+                                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Send with" Margin="0,0,0,8" />
+                                <StackPanel Orientation="Horizontal">
+                                    <RadioButton x:Name="ProviderNtfy" Style="{StaticResource Kannu.ChoiceTile}" GroupName="PushProvider" Margin="0,0,6,0"
+                                                 Content="ntfy" Checked="Provider_Checked" />
+                                    <RadioButton x:Name="ProviderPushover" Style="{StaticResource Kannu.ChoiceTile}" GroupName="PushProvider" Margin="0,0,6,0"
+                                                 Content="Pushover" Checked="Provider_Checked" />
+                                    <RadioButton x:Name="ProviderWebhook" Style="{StaticResource Kannu.ChoiceTile}" GroupName="PushProvider"
+                                                 Content="Webhook" Checked="Provider_Checked" />
+                                </StackPanel>
+                                <TextBlock x:Name="ProviderDescription" Style="{StaticResource Kannu.RowDescription}" Margin="0,8,0,0" />
+                            </StackPanel>
+                            <StackPanel x:Name="NtfyRows">
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE774;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Server" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Your own ntfy server, or the public one. Must start with https://." />
+                                </StackPanel>
+                                <TextBox x:Name="NtfyServerBox" Grid.Column="2" Style="{StaticResource Kannu.TextBox}" VerticalAlignment="Center" LostFocus="NtfyServer_LostFocus" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8D7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Topic" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Anyone who knows the topic can read it: pick something hard to guess. Saved in Windows Credential Manager." />
+                                </StackPanel>
+                                <PasswordBox x:Name="NtfyTopicBox" Grid.Column="2" Style="{StaticResource Kannu.PasswordBox}" VerticalAlignment="Center" LostFocus="Secret_LostFocus" />
+                            </Grid>
+                            </StackPanel>
+                            <StackPanel x:Name="PushoverRows">
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE77B;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="User key" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="From your Pushover dashboard. Saved in Windows Credential Manager." />
+                                </StackPanel>
+                                <PasswordBox x:Name="PushoverUserBox" Grid.Column="2" Style="{StaticResource Kannu.PasswordBox}" VerticalAlignment="Center" LostFocus="Secret_LostFocus" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8D7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="App token" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Create an application in Pushover for Kannu. Saved in Windows Credential Manager." />
+                                </StackPanel>
+                                <PasswordBox x:Name="PushoverTokenBox" Grid.Column="2" Style="{StaticResource Kannu.PasswordBox}" VerticalAlignment="Center" LostFocus="Secret_LostFocus" />
+                            </Grid>
+                            </StackPanel>
+                            <StackPanel x:Name="WebhookRows">
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE71B;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Webhook address" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Kannu sends JSON with state, title, body, timestamp and source. Must be https:// and not on your local network. Saved in Windows Credential Manager." />
+                                </StackPanel>
+                                <PasswordBox x:Name="WebhookBox" Grid.Column="2" Style="{StaticResource Kannu.PasswordBox}" VerticalAlignment="Center" LostFocus="Secret_LostFocus" />
+                            </Grid>
+                            </StackPanel>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8BB;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Also when no agent is active" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Off: only working, needs-you and finished are sent." />
+                                </StackPanel>
+                                <CheckBox x:Name="InactiveToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Notify_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE724;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Send a test" />
+                                    <TextBlock x:Name="TestResult" Style="{StaticResource Kannu.RowDescription}" Text="Uses the settings above, even while phone notifications are off." />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Send test" Click="SendTest_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Reminder" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel Margin="0,4,0,4">
+                            <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Still waiting on you" />
+                            <TextBlock Style="{StaticResource Kannu.RowDescription}" Margin="0,0,0,10"
+                                       Text="If an agent has waited this long for your answer, remind you once, on your phone and in Windows notifications, whichever is on." />
+                            <StackPanel x:Name="ReminderChoices" Orientation="Horizontal" />
+                        </StackPanel>
                     </Border>
                 </StackPanel>
 

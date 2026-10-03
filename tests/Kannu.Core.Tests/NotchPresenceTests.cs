@@ -267,6 +267,12 @@ public sealed class AppSettingsTests : IDisposable
             SkinScrim = 0.4,
             CaffeinateManual = true,
             LastOfferedReport = "crash-20261002T080000Z.txt",
+            PushEnabled = true,
+            PushProvider = PushProvider.Webhook,
+            NtfyServer = "https://ntfy.example.com",
+            PushOnInactive = true,
+            WaitReminderMinutes = 10,
+            ToastsEnabled = true,
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
         settings.Save(File);
         var loaded = AppSettings.Load(File);

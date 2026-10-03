@@ -59,6 +59,23 @@ public sealed record AppSettings
     /// <summary>Keep the PC awake until switched off (the notch's sun button). Ignored while smart is on.</summary>
     public bool CaffeinateManual { get; init; }
 
+    /// <summary>Send the aggregate light to a phone or a webhook (macOS "Mobile notifications"). Off by default.</summary>
+    public bool PushEnabled { get; init; }
+
+    public PushProvider PushProvider { get; init; } = PushProvider.Ntfy;
+
+    /// <summary>The ntfy server. The topic, Pushover keys and webhook URL are secrets: Credential Manager, not here.</summary>
+    public string NtfyServer { get; init; } = "https://ntfy.sh";
+
+    /// <summary>Also send "no agent active". Off by default, as on macOS.</summary>
+    public bool PushOnInactive { get; init; }
+
+    /// <summary>"Still waiting on you" after this many minutes of yellow; 0 is off (the default).</summary>
+    public int WaitReminderMinutes { get; init; }
+
+    /// <summary>Windows notifications when an agent needs you or finishes (D3). Off by default.</summary>
+    public bool ToastsEnabled { get; init; }
+
     /// <summary>Sign-in start was switched on once for a fresh install (macOS: on by default, once).</summary>
     public bool LaunchAtLoginInitialized { get; init; }
 
@@ -107,6 +124,17 @@ public sealed record AppSettings
             SkinPath = String(root, "skinPath"),
             SkinScrim = root["skinScrim"] is JsonValue scrim && scrim.TryGetValue<double>(out var d) ? Math.Clamp(d, 0, 0.9) : 0,
             CaffeinateSmart = Bool(root, "caffeinateSmart") ?? false,
+            PushEnabled = Bool(root, "pushEnabled") ?? false,
+            PushProvider = String(root, "pushProvider") switch
+            {
+                "pushover" => PushProvider.Pushover,
+                "webhook" => PushProvider.Webhook,
+                _ => PushProvider.Ntfy,
+            },
+            NtfyServer = String(root, "ntfyServer") is { Length: > 0 } server ? server : defaults.NtfyServer,
+            PushOnInactive = Bool(root, "pushOnInactive") ?? false,
+            WaitReminderMinutes = root["waitReminderMinutes"] is JsonValue minutes && minutes.TryGetValue<int>(out var m) ? Math.Clamp(m, 0, 240) : 0,
+            ToastsEnabled = Bool(root, "toastsEnabled") ?? false,
             CaffeinateManual = Bool(root, "caffeinateManual") ?? false,
             LaunchAtLoginInitialized = Bool(root, "launchAtLoginInitialized") ?? false,
             LastOfferedReport = String(root, "lastOfferedReport"),
@@ -133,6 +161,12 @@ public sealed record AppSettings
         if (SkinScrim > 0) root["skinScrim"] = SkinScrim;
         root["caffeinateSmart"] = CaffeinateSmart;
         root["caffeinateManual"] = CaffeinateManual;
+        root["pushEnabled"] = PushEnabled;
+        root["pushProvider"] = PushProvider.ToString().ToLowerInvariant();
+        root["ntfyServer"] = NtfyServer;
+        root["pushOnInactive"] = PushOnInactive;
+        root["waitReminderMinutes"] = WaitReminderMinutes;
+        root["toastsEnabled"] = ToastsEnabled;
         if (LaunchAtLoginInitialized) root["launchAtLoginInitialized"] = true;
         if (LastOfferedReport is { } offered) root["lastOfferedReport"] = offered;
         if (TermsAcceptedVersion is { } version) root["termsAcceptedVersion"] = version;

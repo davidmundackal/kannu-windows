@@ -4,6 +4,21 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Phone notifications, the still-waiting reminder and Windows notifications
+- **Developer label:** "Phone notifications (ntfy, Pushover, webhook), the still-waiting reminder and Windows toasts" ("where are we i need all those items shipped to test")
+- **Agent label:** Port of macOS Kannu's AgentStatusNotificationBridge and AgentWaitReminder, plus Windows toasts (D3), shipped as v0.1.0-beta.5
+- **Changes:**
+  - `PushNotifications` (Core): macOS's payloads word for word, never the same state twice,
+    "inactive" only when asked; the https and no-private-network URL policy; the ntfy URL, Pushover
+    form and webhook body. `WaitReminder`: one reminder per wait, overdue waits at start marked
+    not sent. Tested.
+  - `NotificationManager`: the aggregate light sent after 2 s of settling; reminders on a timer
+    for the next due wait; Windows notifications for yellow, red and reminders. Failures are logged
+    by provider and exception type only.
+  - `SecretStore`: ntfy topic, Pushover keys and webhook URL in Windows Credential Manager.
+  - Settings › Notifications page, with text-field styles in the theme. Everything off by default.
+  - 419 tests.
+
 ### 2026-10-03 - Click an agent on the notch to bring its window forward
 - **Developer label:** "Click-through" ("where are we i need all those items shipped to test")
 - **Agent label:** Port of macOS Kannu's click-through for Windows (D2: the window, not the exact tab)

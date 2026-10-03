@@ -92,6 +92,8 @@ public partial class SettingsWindow : Window
         if (page == "General") LoadLogin();
         NotchPage.Visibility = page == "Notch" ? Visibility.Visible : Visibility.Collapsed;
         AgentsPage.Visibility = page == "Agents" ? Visibility.Visible : Visibility.Collapsed;
+        NotificationsPage.Visibility = page == "Notifications" ? Visibility.Visible : Visibility.Collapsed;
+        if (page == "Notifications") LoadSecrets();
         AboutPage.Visibility = page == "About" ? Visibility.Visible : Visibility.Collapsed;
         if (page == "Agents") BuildAgentRows();
     }
@@ -120,6 +122,102 @@ public partial class SettingsWindow : Window
         LoadLogin();
     }
 
+    // ---- Notifications ----
+
+    private static readonly int[] ReminderMinutes = [0, 5, 10, 15, 30];
+
+    private void LoadNotifications(AppSettings s)
+    {
+        ToastToggle.IsChecked = s.ToastsEnabled;
+        PushToggle.IsChecked = s.PushEnabled;
+        InactiveToggle.IsChecked = s.PushOnInactive;
+        ProviderNtfy.IsChecked = s.PushProvider == PushProvider.Ntfy;
+        ProviderPushover.IsChecked = s.PushProvider == PushProvider.Pushover;
+        ProviderWebhook.IsChecked = s.PushProvider == PushProvider.Webhook;
+        ProviderDescription.Text = s.PushProvider switch
+        {
+            PushProvider.Ntfy => "Free. Install the ntfy app on your phone and subscribe to the same topic.",
+            PushProvider.Pushover => "Install Pushover on your phone (a one-time purchase after the trial).",
+            _ => "POST JSON to your own service, for your own integrations.",
+        };
+        NtfyRows.Visibility = s.PushProvider == PushProvider.Ntfy ? Visibility.Visible : Visibility.Collapsed;
+        PushoverRows.Visibility = s.PushProvider == PushProvider.Pushover ? Visibility.Visible : Visibility.Collapsed;
+        WebhookRows.Visibility = s.PushProvider == PushProvider.Webhook ? Visibility.Visible : Visibility.Collapsed;
+        if (!NtfyServerBox.IsKeyboardFocused) NtfyServerBox.Text = s.NtfyServer;
+
+        ReminderChoices.Children.Clear();
+        foreach (var minutes in ReminderMinutes)
+        {
+            var choice = new RadioButton
+            {
+                Style = (Style)FindResource("Kannu.ChoiceTile"),
+                GroupName = "Reminder",
+                Margin = new Thickness(0, 0, 6, 0),
+                Content = minutes == 0 ? "Off" : $"{minutes} min",
+                IsChecked = s.WaitReminderMinutes == minutes,
+            };
+            var value = minutes;
+            choice.Checked += (_, _) =>
+            {
+                if (!_loading) _settings.Update(x => x with { WaitReminderMinutes = value });
+            };
+            ReminderChoices.Children.Add(choice);
+        }
+    }
+
+    /// <summary>Read from Credential Manager only when the page is shown, never kept in a field.</summary>
+    private void LoadSecrets()
+    {
+        NtfyTopicBox.Password = SecretStore.Get(SecretStore.NtfyTopic);
+        PushoverUserBox.Password = SecretStore.Get(SecretStore.PushoverUserKey);
+        PushoverTokenBox.Password = SecretStore.Get(SecretStore.PushoverAppToken);
+        WebhookBox.Password = SecretStore.Get(SecretStore.WebhookUrl);
+    }
+
+    private void Notify_Click(object sender, RoutedEventArgs e) => _settings.Update(s => s with
+    {
+        ToastsEnabled = ToastToggle.IsChecked == true,
+        PushEnabled = PushToggle.IsChecked == true,
+        PushOnInactive = InactiveToggle.IsChecked == true,
+    });
+
+    private void Provider_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var provider = ProviderPushover.IsChecked == true ? PushProvider.Pushover
+            : ProviderWebhook.IsChecked == true ? PushProvider.Webhook : PushProvider.Ntfy;
+        _settings.Update(s => s with { PushProvider = provider });
+    }
+
+    private void NtfyServer_LostFocus(object sender, RoutedEventArgs e)
+    {
+        var server = NtfyServerBox.Text.Trim();
+        if (server.Length == 0) server = new AppSettings().NtfyServer;
+        _settings.Update(s => s with { NtfyServer = server });
+    }
+
+    private void Secret_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender == NtfyTopicBox) SecretStore.Set(SecretStore.NtfyTopic, NtfyTopicBox.Password);
+        else if (sender == PushoverUserBox) SecretStore.Set(SecretStore.PushoverUserKey, PushoverUserBox.Password);
+        else if (sender == PushoverTokenBox) SecretStore.Set(SecretStore.PushoverAppToken, PushoverTokenBox.Password);
+        else if (sender == WebhookBox) SecretStore.Set(SecretStore.WebhookUrl, WebhookBox.Password);
+    }
+
+    private async void SendTest_Click(object sender, RoutedEventArgs e)
+    {
+        // A field still being typed in has not lost focus yet: save everything first.
+        Secret_LostFocus(NtfyTopicBox, e);
+        Secret_LostFocus(PushoverUserBox, e);
+        Secret_LostFocus(PushoverTokenBox, e);
+        Secret_LostFocus(WebhookBox, e);
+        NtfyServer_LostFocus(NtfyServerBox, e);
+        if (NotificationManager.Shared is not { } manager) return;
+        TestResult.Text = "Sending…";
+        var error = await manager.SendTestAsync();
+        TestResult.Text = error is null ? "Sent. Check your phone." : "Not sent: " + error;
+    }
+
     // ---- Notch ----
 
     private void Load(AppSettings s)
@@ -137,6 +235,7 @@ public partial class SettingsWindow : Window
             ? "All three lights, with the inactive two dimmed."
             : "Only the light that is currently lit.";
         BuildColorRows(s.LightColors);
+        LoadNotifications(s);
         SkinDescription.Text = s.SkinPath is { } skin && File.Exists(skin)
             ? Path.GetFileName(skin)
             : "A picture behind the notch: PNG, JPEG, GIF or BMP, cropped to fit.";

@@ -102,6 +102,69 @@
         </Setter>
     </Style>
 
+    <!-- Text fields, Windows 11 style: a filled box whose bottom edge turns accent while typing. -->
+    <Style x:Key="Kannu.TextBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{DynamicResource Kannu.Text}" />
+        <Setter Property="Background" Value="{DynamicResource Kannu.ControlFill}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Kannu.ControlStroke}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Kannu.Text}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="MinWidth" Value="260" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Face" CornerRadius="4" BorderThickness="1,1,1,2" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{DynamicResource Kannu.ControlHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{DynamicResource Kannu.Accent}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="Kannu.PasswordBox" TargetType="PasswordBox">
+        <Setter Property="Foreground" Value="{DynamicResource Kannu.Text}" />
+        <Setter Property="Background" Value="{DynamicResource Kannu.ControlFill}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Kannu.ControlStroke}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Kannu.Text}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Padding" Value="8,5" />
+        <Setter Property="MinWidth" Value="260" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Face" CornerRadius="4" BorderThickness="1,1,1,2" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{DynamicResource Kannu.ControlHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{DynamicResource Kannu.Accent}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Buttons -->
     <Style x:Key="Kannu.Button" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Kannu.Text}" />
