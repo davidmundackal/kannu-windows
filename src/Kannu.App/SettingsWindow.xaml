@@ -182,7 +182,40 @@
                     <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Agents" />
                     <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Margin="0,-8,0,16"
                                Text="Install Kannu's hook in each agent you use and its sessions appear on the notch. Claude Code, Cursor, Warp and Claude Desktop also show up without a hook, with less detail." />
-                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent hooks" Margin="0,0,0,8" />
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Keep the PC awake" Margin="0,0,0,8" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE706;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="While agents are working" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Windows will not go to sleep while any agent is running or has been waiting on you for less than 5 minutes. The screen can still turn off, and closing the lid still sleeps the PC." />
+                                </StackPanel>
+                                <CheckBox x:Name="SmartAwakeToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Caffeinate_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE823;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Until I turn it off" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="The sun button in the open notch does the same. Has no effect while the option above is on." />
+                                </StackPanel>
+                                <CheckBox x:Name="ManualAwakeToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Caffeinate_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent hooks" />
                     <StackPanel x:Name="AgentRows" />
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Status files" />
                     <Border Style="{StaticResource Kannu.Card}">

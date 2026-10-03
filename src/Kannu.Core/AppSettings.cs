@@ -43,6 +43,12 @@ public sealed record AppSettings
 
     public bool OpenOnHover { get; init; } = true;
 
+    /// <summary>Keep the PC awake while any agent is working (macOS "Smart caffeinate"). Off by default.</summary>
+    public bool CaffeinateSmart { get; init; }
+
+    /// <summary>Keep the PC awake until switched off (the notch's sun button). Ignored while smart is on.</summary>
+    public bool CaffeinateManual { get; init; }
+
     /// <summary>Sign-in start was switched on once for a fresh install (macOS: on by default, once).</summary>
     public bool LaunchAtLoginInitialized { get; init; }
 
@@ -83,6 +89,8 @@ public sealed record AppSettings
             HideUntilActivity = Bool(root, "hideUntilActivity") ?? defaults.HideUntilActivity,
             RevealOnTopEdge = Bool(root, "revealOnTopEdge") ?? defaults.RevealOnTopEdge,
             OpenOnHover = Bool(root, "openOnHover") ?? defaults.OpenOnHover,
+            CaffeinateSmart = Bool(root, "caffeinateSmart") ?? false,
+            CaffeinateManual = Bool(root, "caffeinateManual") ?? false,
             LaunchAtLoginInitialized = Bool(root, "launchAtLoginInitialized") ?? false,
             LastOfferedReport = String(root, "lastOfferedReport"),
             TermsAcceptedVersion = root["termsAcceptedVersion"] is JsonValue v && v.TryGetValue<int>(out var version) ? version : null,
@@ -100,6 +108,8 @@ public sealed record AppSettings
             ["revealOnTopEdge"] = RevealOnTopEdge,
             ["openOnHover"] = OpenOnHover,
         };
+        root["caffeinateSmart"] = CaffeinateSmart;
+        root["caffeinateManual"] = CaffeinateManual;
         if (LaunchAtLoginInitialized) root["launchAtLoginInitialized"] = true;
         if (LastOfferedReport is { } offered) root["lastOfferedReport"] = offered;
         if (TermsAcceptedVersion is { } version) root["termsAcceptedVersion"] = version;

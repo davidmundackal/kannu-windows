@@ -46,6 +46,23 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
     /// <summary>The session list was rebuilt (the expanded notch may need a new height).</summary>
     public event Action? SessionsChanged;
 
+    /// <summary>Every rescan's sessions, for consumers that decide on them (caffeinate).</summary>
+    public event Action<IReadOnlyList<AgentSession>>? Updated;
+
+    private bool _isCaffeinated;
+
+    /// <summary>The PC is being kept awake: the open notch's sun button lights up.</summary>
+    public bool IsCaffeinated
+    {
+        get => _isCaffeinated;
+        set
+        {
+            if (_isCaffeinated == value) return;
+            _isCaffeinated = value;
+            PropertyChanged?.Invoke(this, new(nameof(IsCaffeinated)));
+        }
+    }
+
     /// <summary>An agent's light said something new (<see cref="AgentActivity.IsRevealWorthy"/>): reveal a hidden notch.</summary>
     public event Action? Activity;
 
@@ -95,6 +112,7 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         }
 
         if (countChanged) SessionsChanged?.Invoke();
+        Updated?.Invoke(sessions);
         if (reveal) Activity?.Invoke();
     }
 

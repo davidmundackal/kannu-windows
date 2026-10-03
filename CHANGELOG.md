@@ -4,6 +4,21 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Keep the PC awake while agents work
+- **Developer label:** "Caffeinate: keeping the PC awake while agents work" ("these are crtitical features and needs help")
+- **Agent label:** Port of macOS Kannu's smart and manual caffeinate (docs/CAFFEINATE.md) onto a Windows power request
+- **Changes:**
+  - `Caffeinate` (Core): the decision table (smart wins, holds while an agent is in an active run,
+    yellow only for its first 5 minutes) and the transition table (create, release, refresh,
+    none), ported with macOS's tests row for row.
+  - `CaffeinateManager`: one `PowerCreateRequest`/`PowerSetRequest(PowerRequestSystemRequired)` with
+    a reason `powercfg /requests` shows; the display can still turn off, lid and power button still
+    sleep. Released on quit.
+  - Open notch: a sun button (amber while held) toggles manual. Settings › Agents › Keep the PC
+    awake: "While agents are working" (smart) and "Until I turn it off" (manual). Both off by
+    default, as on macOS.
+  - 389 tests.
+
 ### 2026-10-02 - A beta can be published from a commit message
 - **Developer label:** "can you do tthe publishing part, i can login for you in chrome"
 - **Agent label:** release.yml also runs on claude/** branch pushes whose commit message carries [release vX.Y.Z], creating the tag and release itself

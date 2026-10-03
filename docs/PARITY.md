@@ -42,7 +42,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 ## 2. Agent extras
 | Feature | Origin | Windows | How on Windows / why |
 |---|---|---|---|
-| **Caffeinate**, smart + manual (cup in the panel, onboarding step) | Kannu | **Doable** | `PowerCreateRequest` + `PowerSetRequest(PowerRequestSystemRequired)`, the same semantics as `caffeinate -i`: the display may still sleep, and the lid follows power policy. Port `shouldKeepAwake` / `caffeinateTransition` and their decision-table tests unchanged |
+| **Caffeinate**, smart + manual (cup in the panel, onboarding step) | Kannu | **Done** (onboarding step pending) | Sun button in the open notch (amber while held) and Settings › Agents › Keep the PC awake. Decision and transition tables ported with their tests; `PowerCreateRequest` + `PowerSetRequest(PowerRequestSystemRequired)`, the same semantics as `caffeinate -i`: the display may still sleep, and the lid follows power policy. Port `shouldKeepAwake` / `caffeinateTransition` and their decision-table tests unchanged |
 | **Click-through**: IDE chats | Kannu | **Doable** | Activate a running Cursor/Code window by its process (`AllowSetForegroundWindow` plus a foreground-lock workaround), or launch `cursor`/`code <folder>` |
 | Click-through: Claude Desktop chat (`claude://…epitaxy/<id>`, `claude://resume`) | Kannu | **Doable** | Only if Claude Desktop for Windows registers `claude://`; verify first. Read Desktop's session index under `%APPDATA%\Claude` |
 | Click-through: CLI agent's terminal window | Kannu | **Doable** | Walk the process parents (Toolhelp32 / `NtQueryInformationProcess`) up to Windows Terminal, conhost, VS Code or Cursor, then bring that window forward |

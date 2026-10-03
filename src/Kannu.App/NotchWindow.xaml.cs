@@ -71,6 +71,9 @@ public partial class NotchWindow : Window
 
     public event Action? SettingsRequested;
 
+    /// <summary>The sun button: keep the PC awake now, or stop.</summary>
+    public event Action? CaffeinateRequested;
+
     internal NotchWindow(NotchViewModel model, SettingsStore settings)
     {
         InitializeComponent();
@@ -336,4 +339,6 @@ public partial class NotchWindow : Window
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
+
+    private void Caffeinate_Click(object sender, RoutedEventArgs e) => CaffeinateRequested?.Invoke();
 }

@@ -260,6 +260,8 @@ public sealed class AppSettingsTests : IDisposable
             RevealOnTopEdge = true,
             OpenOnHover = false,
             LaunchAtLoginInitialized = true,
+            CaffeinateSmart = true,
+            CaffeinateManual = true,
             LastOfferedReport = "crash-20261002T080000Z.txt",
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
         settings.Save(File);

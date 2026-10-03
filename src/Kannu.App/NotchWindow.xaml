@@ -147,6 +147,24 @@
                     </ItemsControl>
                     <TextBlock Text="{Binding SelectedTab.Label}" Foreground="#D9FFFFFF" FontSize="12" FontWeight="SemiBold"
                                HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource HeaderButton}" HorizontalAlignment="Right" Margin="0,0,32,0"
+                            Click="Caffeinate_Click">
+                        <Button.ToolTip>
+                            <ToolTip Content="Keep the PC awake" />
+                        </Button.ToolTip>
+                        <TextBlock Text="&#xE706;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#80FFFFFF" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCaffeinated}" Value="True">
+                                            <Setter Property="Foreground" Value="#FFF59E0B" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
                     <Button Style="{StaticResource HeaderButton}" HorizontalAlignment="Right" ToolTip="Settings"
                             Click="Settings_Click">
                         <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="#E6FFFFFF" />

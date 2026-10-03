@@ -131,6 +131,9 @@ public partial class SettingsWindow : Window
         EdgeToggle.IsChecked = s.RevealOnTopEdge;
         EdgeToggle.IsEnabled = s.HideUntilActivity;
         HoverToggle.IsChecked = s.OpenOnHover;
+        SmartAwakeToggle.IsChecked = s.CaffeinateSmart;
+        ManualAwakeToggle.IsChecked = s.CaffeinateManual;
+        ManualAwakeToggle.IsEnabled = !s.CaffeinateSmart;
         TermsStatus.Text = s.TermsAcceptedAt is { } at && DateTimeOffset.TryParse(at, CultureInfo.InvariantCulture,
             DateTimeStyles.AssumeUniversal, out var when)
             ? $"Version {s.TermsAcceptedVersion}, accepted on {when.LocalDateTime:D}"
@@ -157,6 +160,16 @@ public partial class SettingsWindow : Window
     }
 
     // ---- Agents ----
+
+    private void Caffeinate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.Update(s => s with
+        {
+            CaffeinateSmart = SmartAwakeToggle.IsChecked == true,
+            CaffeinateManual = ManualAwakeToggle.IsChecked == true,
+        });
+    }
 
     private void BuildAgentRows()
     {
