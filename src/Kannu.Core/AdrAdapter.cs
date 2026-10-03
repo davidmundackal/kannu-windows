@@ -24,7 +24,9 @@ public static class AdrAdapter
     public const string FileName = "adr-analyze-session.py";
     public const string VersionMarker = "KANNU_ADR_ADAPTER_VERSION=5";
 
-    public static readonly string Source = """"
+    // Normalised to LF: a Windows checkout (core.autocrlf) turns this raw literal's line endings into
+    // CRLF, and the script must stay byte for byte the macOS adapter.
+    public static readonly string Source = (""""
 #!/usr/bin/env python3
 # KANNU_ADR_ADAPTER_VERSION=5
 #
@@ -288,5 +290,5 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-"""" + "\n";
+"""" + "\n").Replace("\r\n", "\n");
 }

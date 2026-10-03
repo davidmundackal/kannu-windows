@@ -4,6 +4,13 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Keep the ADR adapter script byte for byte on Windows checkouts
+- **Developer label:** CI red on beta.10: `AdrDetectionTests.Adapter_is_the_macOS_script` on windows-latest
+- **Agent label:** Fix: normalise the embedded adapter script to LF; a Windows checkout's CRLF made it differ from the macOS script
+- **Changes:**
+  - `AdrAdapter.Source` replaces CRLF with LF, so the script Kannu writes is the macOS adapter
+    whatever line endings git checked out. Verified by converting the file to CRLF locally.
+
 ### 2026-10-03 - ADR, a brightness HUD, a screen-capture dot and a forecast that remembers
 - **Developer label:** "do all this" (forecast persistence, brightness keys, screen-recording indicator, "ADR scans … should be done")
 - **Agent label:** Port of macOS UsageAlertManager persistence and ADR integration (Discovery partial upstream on Windows), plus a brightness HUD and a best-effort capture indicator; shipped as v0.1.0-beta.10
