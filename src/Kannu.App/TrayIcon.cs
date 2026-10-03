@@ -114,7 +114,10 @@ internal sealed class TrayIcon : IDisposable
         // Taskbar theme or display scale changed: the idle eye's colour or the icon size is stale.
         SystemEvents.UserPreferenceChanged += OnSystemChanged;
         SystemEvents.DisplaySettingsChanged += OnSystemChanged;
+        KannuColors.Changed += OnColorsChanged;
     }
+
+    private void OnColorsChanged() => OnSystemChanged(null, EventArgs.Empty);
 
     public void SetLight(TrafficLight light)
     {
@@ -160,9 +163,9 @@ internal sealed class TrayIcon : IDisposable
         var size = SystemInformation.SmallIconSize.Width;
         var idle = TaskbarIsLight() ? Color.FromArgb(0x1F, 0x1F, 0x1F) : Color.White;
         _icons[TrafficLight.Inactive] = MakeIcon(idle, size);
-        _icons[TrafficLight.Green] = MakeIcon(KannuColors.Green, size);
-        _icons[TrafficLight.Yellow] = MakeIcon(KannuColors.Yellow, size);
-        _icons[TrafficLight.Red] = MakeIcon(KannuColors.Red, size);
+        _icons[TrafficLight.Green] = MakeIcon(KannuColors.For(TrafficLight.Green), size);
+        _icons[TrafficLight.Yellow] = MakeIcon(KannuColors.For(TrafficLight.Yellow), size);
+        _icons[TrafficLight.Red] = MakeIcon(KannuColors.For(TrafficLight.Red), size);
     }
 
     private Icon MakeIcon(Color color, int size)
@@ -198,6 +201,7 @@ internal sealed class TrayIcon : IDisposable
     {
         SystemEvents.UserPreferenceChanged -= OnSystemChanged;
         SystemEvents.DisplaySettingsChanged -= OnSystemChanged;
+        KannuColors.Changed -= OnColorsChanged;
         _icon.Visible = false;
         _icon.Dispose();
         foreach (var icon in _icons.Values) icon.Dispose();

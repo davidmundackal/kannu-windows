@@ -12,21 +12,48 @@
 // You should have received a copy of the GNU General Public License along with this program. If
 // not, see <https://www.gnu.org/licenses/>.
 
+using System;
+using System.Collections.Generic;
 using System.Drawing.Text;
 using System.Linq;
 
 namespace Kannu.App;
 
 /// <summary>
-/// The traffic-light colours, the same values as Kannu for macOS
-/// (<c>AgentTrafficLightColors.swift</c>), so a light looks the same on both platforms.
+/// The traffic-light colours in use: macOS Kannu's palette (<c>AgentTrafficLightColors.swift</c>),
+/// green, yellow and red unless the user picked others in Settings › Notch. UI thread only.
 /// </summary>
 internal static class KannuColors
 {
-    public static readonly System.Drawing.Color Green = System.Drawing.Color.FromArgb(0x22, 0xC5, 0x5E);
-    public static readonly System.Drawing.Color Yellow = System.Drawing.Color.FromArgb(0xFA, 0xCC, 0x15);
-    public static readonly System.Drawing.Color Red = System.Drawing.Color.FromArgb(0xEF, 0x44, 0x44);
     public static readonly System.Drawing.Color Dim = System.Drawing.Color.FromArgb(0x6E, 0x6E, 0x73);
+    private static readonly System.Windows.Media.SolidColorBrush DimBrush = Brush(Dim);
+    private static readonly Dictionary<Kannu.Core.TrafficLight, System.Windows.Media.SolidColorBrush> Brushes = [];
+
+    public static Kannu.Core.LightColors Current { get; private set; } = Kannu.Core.LightColors.Default;
+
+    /// <summary>The user picked other colours: icons and lights redraw.</summary>
+    public static event Action? Changed;
+
+    public static void Apply(Kannu.Core.LightColors colors)
+    {
+        if (colors == Current) return;
+        Current = colors;
+        Brushes.Clear();
+        Changed?.Invoke();
+    }
+
+    public static System.Drawing.Color For(Kannu.Core.TrafficLight light) =>
+        Current.For(light) is { } palette ? System.Drawing.ColorTranslator.FromHtml(Kannu.Core.LightColors.Hex(palette)) : Dim;
+
+    public static System.Windows.Media.SolidColorBrush BrushFor(Kannu.Core.TrafficLight light)
+    {
+        if (light == Kannu.Core.TrafficLight.Inactive) return DimBrush;
+        if (!Brushes.TryGetValue(light, out var brush)) Brushes[light] = brush = Brush(For(light));
+        return brush;
+    }
+
+    public static System.Windows.Media.SolidColorBrush BrushFor(Kannu.Core.PaletteColor palette) =>
+        Brush(System.Drawing.ColorTranslator.FromHtml(Kannu.Core.LightColors.Hex(palette)));
 
     public static System.Windows.Media.SolidColorBrush Brush(System.Drawing.Color color)
     {

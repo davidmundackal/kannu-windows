@@ -101,6 +101,8 @@ public partial class NotchWindow : Window
         {
             if (_shown == NotchPresenceState.Open) AnimateSize(open: true);
         };
+        model.AggregateChanged += _ => ApplyLights();
+        KannuColors.Changed += ApplyLights;
         model.Activity += () =>
         {
             _presence.AgentActivity(Now);
@@ -120,6 +122,7 @@ public partial class NotchWindow : Window
         {
             SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             settings.Changed -= ApplySettings;
+            KannuColors.Changed -= ApplyLights;
         };
     }
 
@@ -149,6 +152,8 @@ public partial class NotchWindow : Window
         Pill.Margin = new Thickness(0, floating ? PillTopOffset : 0, 0, 0);
         Pill.BorderThickness = floating ? new Thickness(1) : new Thickness(1, 0, 1, 1);
         ApplyCorners(_shown == NotchPresenceState.Open);
+        ApplySkin(settings);
+        ApplyLights();
         _presence.Configure(settings.HideUntilActivity, settings.OpenOnHover, Now);
         Apply(force: true);
     }
@@ -158,6 +163,98 @@ public partial class NotchWindow : Window
     {
         var radius = open ? 24 : _style == NotchStyle.FloatingPill ? Math.Max(CollapsedHeight / 2, 16) : 14;
         Pill.CornerRadius = _style == NotchStyle.FloatingPill ? new CornerRadius(radius) : new CornerRadius(0, 0, radius, radius);
+    }
+
+    // ---- Lights and skin ----
+
+    private TrafficLight _litLight = (TrafficLight)(-1);
+    private LightStyle _litStyle;
+
+    /// <summary>
+    /// The closed notch's light, as macOS draws it: Classic shows all three with the unlit two dimmed,
+    /// Minimal only the lit one. A lit green or yellow breathes (scale 1.3, opacity 0.5, 0.7 s each
+    /// way); a fresh red pulses for 4 s, then holds. Still with Windows' animation effects off.
+    /// </summary>
+    private void ApplyLights()
+    {
+        var light = _model.Aggregate;
+        var style = _settings.Current.LightStyle;
+        var lights = new[] { (ActiveLight, TrafficLight.Green), (AwaitingLight, TrafficLight.Yellow), (StoppedLight, TrafficLight.Red) };
+        foreach (var (ellipse, slot) in lights)
+        {
+            ellipse.Fill = KannuColors.BrushFor(slot);
+            var lit = slot == light;
+            ellipse.Visibility = style == LightStyle.Classic || lit ? Visibility.Visible : Visibility.Collapsed;
+            if (!lit) StopBreathing(ellipse, opacity: style == LightStyle.Classic ? 0.22 : 1);
+        }
+        // Minimal with nothing lit (every chat idle): one dim dot, so the notch still says "agents here".
+        if (style == LightStyle.Minimal && light == TrafficLight.Inactive)
+        {
+            ActiveLight.Visibility = Visibility.Visible;
+            ActiveLight.Fill = KannuColors.BrushFor(TrafficLight.Inactive);
+        }
+
+        if (light == _litLight && style == _litStyle) return;
+        _litLight = light;
+        _litStyle = style;
+        var litEllipse = light switch
+        {
+            TrafficLight.Green => ActiveLight,
+            TrafficLight.Yellow => AwaitingLight,
+            TrafficLight.Red => StoppedLight,
+            _ => null,
+        };
+        if (litEllipse is not null) Breathe(litEllipse, forever: light != TrafficLight.Red);
+    }
+
+    private static void Breathe(System.Windows.Shapes.Ellipse ellipse, bool forever)
+    {
+        StopBreathing(ellipse, 1);
+        if (!SystemParameters.ClientAreaAnimation) return;
+        var half = TimeSpan.FromMilliseconds(700);
+        var repeat = forever ? RepeatBehavior.Forever : new RepeatBehavior(TimeSpan.FromSeconds(4));
+        var scale = (ScaleTransform)ellipse.RenderTransform;
+        var grow = new DoubleAnimation(1, 1.3, half) { AutoReverse = true, RepeatBehavior = repeat, EasingFunction = new SineEase() };
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+        ellipse.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0.5, half) { AutoReverse = true, RepeatBehavior = repeat, EasingFunction = new SineEase() });
+    }
+
+    private static void StopBreathing(System.Windows.Shapes.Ellipse ellipse, double opacity)
+    {
+        var scale = (ScaleTransform)ellipse.RenderTransform;
+        scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        ellipse.BeginAnimation(OpacityProperty, null);
+        ellipse.Opacity = opacity;
+    }
+
+    /// <summary>A picture behind the notch, cropped to fill it, with the user's scrim over it.</summary>
+    private void ApplySkin(AppSettings settings)
+    {
+        ImageSource? image = null;
+        if (settings.SkinPath is { } path && System.IO.File.Exists(path))
+        {
+            try
+            {
+                var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                bitmap.UriSource = new Uri(path);
+                bitmap.DecodePixelWidth = 900;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                image = bitmap;
+            }
+            catch (Exception e) when (e is System.IO.IOException or NotSupportedException or UriFormatException or InvalidOperationException)
+            {
+                Diagnostics.Error("Could not load the notch skin", e);
+            }
+        }
+        Pill.Background = image is null
+            ? new SolidColorBrush(Color.FromArgb(0xF2, 0x12, 0x12, 0x14))
+            : new ImageBrush(image) { Stretch = Stretch.UniformToFill };
+        SkinScrim.Opacity = image is null ? 0 : settings.SkinScrim;
     }
 
     // ---- Presence ----

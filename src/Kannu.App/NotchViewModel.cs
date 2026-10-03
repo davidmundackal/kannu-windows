@@ -25,12 +25,7 @@ namespace Kannu.App;
 /// <summary>What the notch shows. Fed by <see cref="StatusMonitor"/>; the view never touches disk.</summary>
 internal sealed class NotchViewModel : INotifyPropertyChanged
 {
-    private const int MaxDots = 6;
-
     public ObservableCollection<SessionRow> Sessions { get; } = [];
-
-    /// <summary>The collapsed pill's dots: the most urgent sessions first.</summary>
-    public ObservableCollection<SessionRow> Dots { get; } = [];
 
     public string Summary { get; private set; } = Text.NoAgents;
 
@@ -88,12 +83,10 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         var countChanged = sessions.Count != Sessions.Count;
 
         Sessions.Clear();
-        Dots.Clear();
         foreach (var session in sessions)
         {
             var row = new SessionRow(session, nowMs, Tokens.TryGetValue(session.ConversationId, out var t) ? t : null);
             Sessions.Add(row);
-            if (Dots.Count < MaxDots) Dots.Add(row);
         }
 
         var summary = Summarise(sessions);
@@ -161,10 +154,6 @@ internal sealed class NotchTab(string id, string label, string glyph) : INotifyP
 /// <summary>One card. Immutable: a status change rebuilds the row.</summary>
 internal sealed class SessionRow
 {
-    private static readonly Brush Green = KannuColors.Brush(KannuColors.Green);
-    private static readonly Brush Yellow = KannuColors.Brush(KannuColors.Yellow);
-    private static readonly Brush Red = KannuColors.Brush(KannuColors.Red);
-    private static readonly Brush Dim = KannuColors.Brush(KannuColors.Dim);
 
     public SessionRow(AgentSession session, long nowMs, TurnTokens? tokens)
     {
@@ -173,13 +162,7 @@ internal sealed class SessionRow
         // something better is known.
         Title = AgentStateMachine.HasReliableChatName(session.ChatName) ? session.DisplayChatName
             : session.ProjectName ?? session.DisplayChatName;
-        Brush = session.DisplayState.Light() switch
-        {
-            TrafficLight.Green => Green,
-            TrafficLight.Yellow => Yellow,
-            TrafficLight.Red => Red,
-            _ => Dim,
-        };
+        Brush = KannuColors.BrushFor(session.DisplayState.Light());
         var parts = new List<string> { session.ProviderLabel, StateText(session) };
         switch (TurnDisplay.For(session.Turn, session.ExecutionStartedAtMs, session.DisplayState, session.HasActiveRawState, session.UpdatedAtMs))
         {

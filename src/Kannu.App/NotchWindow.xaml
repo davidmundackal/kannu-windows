@@ -12,10 +12,6 @@
       passes clicks through fully transparent pixels, so the spare area never blocks the desktop.
     -->
     <Window.Resources>
-        <DataTemplate x:Key="DotTemplate">
-            <Ellipse Width="8" Height="8" Margin="3,0" Fill="{Binding Brush}" />
-        </DataTemplate>
-
         <!-- A card: light, agent icon, chat title, and below it agent · state · run time · tools · tokens. -->
         <DataTemplate x:Key="RowTemplate">
             <Grid Height="40">
@@ -100,6 +96,8 @@
             <TranslateTransform x:Name="PillShift" Y="-60" />
         </Border.RenderTransform>
         <Grid>
+            <!-- Darkens a notch skin so the lights and text stay readable. -->
+            <Border x:Name="SkinScrim" Background="#FF000000" Opacity="0" IsHitTestVisible="False" />
             <!-- Closed: Kannu's eye while nothing runs, else one dot per session and a summary. -->
             <StackPanel x:Name="CollapsedRow" Height="32" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center" Text="&#xE890;" FontSize="14" Foreground="#D9FFFFFF"
@@ -114,14 +112,28 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
-                <ItemsControl VerticalAlignment="Center" Focusable="False"
-                              ItemsSource="{Binding Dots}" ItemTemplate="{StaticResource DotTemplate}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                </ItemsControl>
+                <!-- The traffic light: Classic shows all three (unlit ones dimmed), Minimal only the lit one. -->
+                <StackPanel x:Name="Lights" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="ActiveLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="AwaitingLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="StoppedLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                </StackPanel>
                 <TextBlock Margin="6,0,0,0" MaxWidth="150" VerticalAlignment="Center"
                            Text="{Binding Summary}" Foreground="#D9FFFFFF" FontSize="12"
                            TextTrimming="CharacterEllipsis" />

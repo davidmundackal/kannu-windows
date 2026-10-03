@@ -4,6 +4,20 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Choose the traffic-light style, colours and a notch skin
+- **Developer label:** "Traffic-light styles (Classic/Minimal, colours, breathing/blink) and notch skins" ("where are we i need all those items shipped to test")
+- **Agent label:** Port of macOS Kannu's light style, colour palette and notch skins onto the WPF notch, shipped as v0.1.0-beta.4
+- **Changes:**
+  - `LightColors` (Core): the ten-colour palette with macOS's hex values; a colour another state
+    already uses cannot be picked; invalid saved colours fall back to the defaults. Tested.
+  - `AppSettings`: `LightStyle`, `LightColors`, `SkinPath`, `SkinScrim` (clamped 0–0.9).
+  - Notch: three lights (Classic) or one (Minimal), breathing while lit; a fresh red pulses for 4 s,
+    then holds. Session rows and the tray icon use the chosen colours, live.
+  - Notch skin: the picture is copied to `%APPDATA%\Kannu\skins`, drawn behind the notch, with a
+    scrim slider.
+  - Settings › Notch: "Traffic light" and "Notch skin" cards.
+  - PARITY, release notes. 393 tests.
+
 ### 2026-10-03 - Keep the PC awake while agents work
 - **Developer label:** "Caffeinate: keeping the PC awake while agents work" ("these are crtitical features and needs help")
 - **Agent label:** Port of macOS Kannu's smart and manual caffeinate (docs/CAFFEINATE.md) onto a Windows power request

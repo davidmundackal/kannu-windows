@@ -131,6 +131,18 @@ public partial class SettingsWindow : Window
         EdgeToggle.IsChecked = s.RevealOnTopEdge;
         EdgeToggle.IsEnabled = s.HideUntilActivity;
         HoverToggle.IsChecked = s.OpenOnHover;
+        StyleClassic.IsChecked = s.LightStyle == LightStyle.Classic;
+        StyleMinimal.IsChecked = s.LightStyle == LightStyle.Minimal;
+        StyleDescription.Text = s.LightStyle == LightStyle.Classic
+            ? "All three lights, with the inactive two dimmed."
+            : "Only the light that is currently lit.";
+        BuildColorRows(s.LightColors);
+        SkinDescription.Text = s.SkinPath is { } skin && File.Exists(skin)
+            ? Path.GetFileName(skin)
+            : "A picture behind the notch: PNG, JPEG, GIF or BMP, cropped to fit.";
+        RemoveSkinButton.IsEnabled = s.SkinPath is not null;
+        ScrimSlider.Value = s.SkinScrim;
+        ScrimSlider.IsEnabled = s.SkinPath is not null;
         SmartAwakeToggle.IsChecked = s.CaffeinateSmart;
         ManualAwakeToggle.IsChecked = s.CaffeinateManual;
         ManualAwakeToggle.IsEnabled = !s.CaffeinateSmart;
@@ -157,6 +169,122 @@ public partial class SettingsWindow : Window
             RevealOnTopEdge = EdgeToggle.IsChecked == true,
             OpenOnHover = HoverToggle.IsChecked == true,
         });
+    }
+
+    // ---- Traffic light and skin ----
+
+    private void LightStyle_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var style = StyleMinimal.IsChecked == true ? LightStyle.Minimal : LightStyle.Classic;
+        _settings.Update(s => s with { LightStyle = style });
+    }
+
+    /// <summary>One row per state with the palette as round swatches; a colour another state uses is disabled.</summary>
+    private void BuildColorRows(LightColors colors)
+    {
+        ColorRows.Children.Clear();
+        foreach (var (slot, title, detail) in new[]
+                 {
+                     (LightSlot.Active, "Working", "The agent is thinking or running tools."),
+                     (LightSlot.Awaiting, "Needs you", "The agent is waiting for your answer or approval."),
+                     (LightSlot.Stopped, "Finished", "The agent finished or stopped."),
+                 })
+        {
+            var grid = new Grid { Margin = new Thickness(0, 6, 0, 6) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(32, 0, 24, 0) };
+            text.Children.Add(new TextBlock { Text = title, Style = (Style)FindResource("Kannu.RowTitle") });
+            text.Children.Add(new TextBlock { Text = detail, Style = (Style)FindResource("Kannu.RowDescription") });
+            grid.Children.Add(text);
+
+            var swatches = new WrapPanel { VerticalAlignment = VerticalAlignment.Center, MaxWidth = 300 };
+            foreach (var color in Enum.GetValues<PaletteColor>())
+            {
+                var chosen = colors[slot] == color;
+                var taken = colors.IsTakenByOther(slot, color);
+                var swatch = new Button
+                {
+                    Width = 22,
+                    Height = 22,
+                    Margin = new Thickness(3),
+                    Cursor = taken ? null : System.Windows.Input.Cursors.Hand,
+                    IsEnabled = !taken,
+                    ToolTip = taken ? $"{color} (used by another light)" : color.ToString(),
+                    Template = SwatchTemplate(KannuColors.BrushFor(color), chosen, taken),
+                };
+                var (s, c) = (slot, color);
+                swatch.Click += (_, _) => _settings.Update(x => x with { LightColors = x.LightColors.With(s, c) });
+                swatches.Children.Add(swatch);
+            }
+            Grid.SetColumn(swatches, 1);
+            grid.Children.Add(swatches);
+            ColorRows.Children.Add(grid);
+        }
+    }
+
+    private ControlTemplate SwatchTemplate(Brush fill, bool chosen, bool taken)
+    {
+        var ring = new FrameworkElementFactory(typeof(Border));
+        ring.SetValue(Border.CornerRadiusProperty, new CornerRadius(11));
+        ring.SetValue(Border.BorderThicknessProperty, new Thickness(chosen ? 2 : 0));
+        ring.SetValue(Border.BorderBrushProperty, FindResource("Kannu.Text"));
+        ring.SetValue(Border.PaddingProperty, new Thickness(chosen ? 2 : 0));
+        var dot = new FrameworkElementFactory(typeof(Border));
+        dot.SetValue(Border.CornerRadiusProperty, new CornerRadius(9));
+        dot.SetValue(Border.BackgroundProperty, fill);
+        dot.SetValue(OpacityProperty, taken ? 0.25 : 1.0);
+        ring.AppendChild(dot);
+        return new ControlTemplate(typeof(Button)) { VisualTree = ring };
+    }
+
+    private void ResetColors_Click(object sender, RoutedEventArgs e) =>
+        _settings.Update(s => s with { LightColors = LightColors.Default });
+
+    /// <summary>Copies the picture into Kannu's own folder, so moving or deleting the original does not break the skin.</summary>
+    private void ChooseSkin_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog
+        {
+            Filter = "Pictures (*.png;*.jpg;*.jpeg;*.gif;*.bmp)|*.png;*.jpg;*.jpeg;*.gif;*.bmp",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            var folder = Path.Combine(Path.GetDirectoryName(AppSettings.DefaultPath())!, "skins");
+            Directory.CreateDirectory(folder);
+            var copy = Path.Combine(folder, $"skin-{DateTime.UtcNow:yyyyMMddHHmmss}{Path.GetExtension(dialog.FileName).ToLowerInvariant()}");
+            File.Copy(dialog.FileName, copy);
+            var old = _settings.Current.SkinPath;
+            _settings.Update(s => s with { SkinPath = copy, SkinScrim = s.SkinPath is null ? 0.3 : s.SkinScrim });
+            if (old is not null && old != copy && File.Exists(old)) File.Delete(old);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, ex.Message, "Kannu", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void RemoveSkin_Click(object sender, RoutedEventArgs e)
+    {
+        var old = _settings.Current.SkinPath;
+        _settings.Update(s => s with { SkinPath = null, SkinScrim = 0 });
+        try
+        {
+            if (old is not null && File.Exists(old)) File.Delete(old);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+        }
+    }
+
+    private void Scrim_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_loading || !IsLoaded) return;
+        var value = Math.Round(e.NewValue, 1);
+        _settings.Update(s => s with { SkinScrim = value });
     }
 
     // ---- Agents ----

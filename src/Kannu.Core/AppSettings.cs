@@ -43,6 +43,16 @@ public sealed record AppSettings
 
     public bool OpenOnHover { get; init; } = true;
 
+    public LightStyle LightStyle { get; init; } = LightStyle.Classic;
+
+    public LightColors LightColors { get; init; } = LightColors.Default;
+
+    /// <summary>A picture behind the notch (a copy in Kannu's skins folder), or null.</summary>
+    public string? SkinPath { get; init; }
+
+    /// <summary>How dark the scrim over the skin is, 0 to 0.9, so the lights stay readable.</summary>
+    public double SkinScrim { get; init; }
+
     /// <summary>Keep the PC awake while any agent is working (macOS "Smart caffeinate"). Off by default.</summary>
     public bool CaffeinateSmart { get; init; }
 
@@ -89,6 +99,13 @@ public sealed record AppSettings
             HideUntilActivity = Bool(root, "hideUntilActivity") ?? defaults.HideUntilActivity,
             RevealOnTopEdge = Bool(root, "revealOnTopEdge") ?? defaults.RevealOnTopEdge,
             OpenOnHover = Bool(root, "openOnHover") ?? defaults.OpenOnHover,
+            LightStyle = String(root, "lightStyle") == "minimal" ? LightStyle.Minimal : LightStyle.Classic,
+            LightColors = new LightColors(
+                Palette(root, "activeColor") ?? LightColors.Default.Active,
+                Palette(root, "awaitingColor") ?? LightColors.Default.Awaiting,
+                Palette(root, "stoppedColor") ?? LightColors.Default.Stopped).Valid(),
+            SkinPath = String(root, "skinPath"),
+            SkinScrim = root["skinScrim"] is JsonValue scrim && scrim.TryGetValue<double>(out var d) ? Math.Clamp(d, 0, 0.9) : 0,
             CaffeinateSmart = Bool(root, "caffeinateSmart") ?? false,
             CaffeinateManual = Bool(root, "caffeinateManual") ?? false,
             LaunchAtLoginInitialized = Bool(root, "launchAtLoginInitialized") ?? false,
@@ -108,6 +125,12 @@ public sealed record AppSettings
             ["revealOnTopEdge"] = RevealOnTopEdge,
             ["openOnHover"] = OpenOnHover,
         };
+        root["lightStyle"] = LightStyle == LightStyle.Minimal ? "minimal" : "classic";
+        root["activeColor"] = LightColors.Active.ToString().ToLowerInvariant();
+        root["awaitingColor"] = LightColors.Awaiting.ToString().ToLowerInvariant();
+        root["stoppedColor"] = LightColors.Stopped.ToString().ToLowerInvariant();
+        if (SkinPath is { } skin) root["skinPath"] = skin;
+        if (SkinScrim > 0) root["skinScrim"] = SkinScrim;
         root["caffeinateSmart"] = CaffeinateSmart;
         root["caffeinateManual"] = CaffeinateManual;
         if (LaunchAtLoginInitialized) root["launchAtLoginInitialized"] = true;
@@ -123,6 +146,9 @@ public sealed record AppSettings
 
     private static string? String(JsonObject root, string key) =>
         root[key] is JsonValue v && v.TryGetValue<string>(out var s) ? s : null;
+
+    private static PaletteColor? Palette(JsonObject root, string key) =>
+        Enum.TryParse<PaletteColor>(String(root, key), ignoreCase: true, out var color) && Enum.IsDefined(color) ? color : null;
 
     private static bool? Bool(JsonObject root, string key) =>
         root[key] is JsonValue v && v.TryGetValue<bool>(out var b) ? b : null;

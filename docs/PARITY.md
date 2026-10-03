@@ -34,7 +34,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Run time, tool calls, Claude tokens | Kannu | **Done** | |
 | Per-agent app icons | Kannu | **Done** | From the exe icon, else a coloured initial |
 | Detected Editors grid | Kannu | **Doable** | Needs the Settings window |
-| Closed-notch light: Classic/Minimal style, colour palette (colour-blind safe), breathing, 5 s red blink | Kannu | **Partial** | Dots and summary exist. Style picker, palette, breathing and blink are doable (WPF animations) |
+| Closed-notch light: Classic/Minimal style, colour palette (colour-blind safe), breathing, 5 s red blink | Kannu | **Done** | Settings › Notch › Traffic light: Classic (three lights) or Minimal (one), ten-colour palette with no two states sharing a colour, breathing; a fresh red pulses for 4 s. Tray icons follow the colours |
 | Open-panel recent chats | Kannu | **Done** | Two-line cards. The findings chip, caffeinate cup and ADR line come with their features |
 | Hide Kannu's own `/usage` probe | Kannu | **Doable** | Only needed if the usage refresh (§3) is ported |
 | Agents running inside **WSL** | Windows only | **Doable (D1: yes, Phase 3)** | Not a macOS feature, but common on Windows: a hook inside WSL writes to Linux `~/.kannu`, which the Windows app never sees. Plan: a small Linux hook in WSL writing to `/mnt/c/Users/<name>/.kannu/agent-status` |
@@ -53,7 +53,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | "Still waiting on you" reminder push | Kannu | **Doable** | Pure logic (`AgentWaitReminder`) + tests |
 | Pushes for security findings and usage limits | Kannu | **Doable** | Comes with §3 and §4 |
 | Local desktop notifications (toasts) | Windows only | **Decide (D3)** | macOS Kannu has none (mobile push only). Windows toasts would be new |
-| **Notch skins** (image clipped to the notch, scrim) | Kannu | **Doable** | WPF `ImageBrush` in the pill; PNG/JPG/GIF/SVG via SharpVectors or WPF |
+| **Notch skins** (image clipped to the notch, scrim) | Kannu | **Done** | Settings › Notch › Notch skin: PNG/JPG/BMP/GIF (first frame) copied to `%APPDATA%\Kannu\skins`, `ImageBrush` UniformToFill, "Darken the picture" scrim 0–90 %. SVG not supported |
 | Tray eye (menu-bar eye) | Kannu | **Done** (Restart doable) | Eye tinted by the light; left click opens the notch with its tabs (closes after 3 s unless the pointer is on it); menu: Open Kannu, Settings…, Agent hooks, status folder, updates, Quit |
 | Shortcuts off by default; launch at login on by default | Kannu | **Doable** | §5 |
 
@@ -191,12 +191,12 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
    - shortcuts;
    - localization plumbing.
 2. **Phase 3 – Kannu's agent extras:**
-   - light style, palette, breathing and blink;
-   - caffeinate;
+   - light style, palette, breathing and blink (done);
+   - caffeinate (done);
    - click-through (D2);
    - mobile push + reminder;
    - toasts (D3);
-   - notch skins;
+   - notch skins (done);
    - Detected Editors;
    - hookless Codex;
    - WSL (D1).

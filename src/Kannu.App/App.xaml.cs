@@ -64,6 +64,8 @@ public partial class App : Application
     private void ContinueLaunch(SettingsStore settings)
     {
         LaunchAtLoginManager.EnsureDefault(settings);
+        KannuColors.Apply(settings.Current.LightColors);
+        settings.Changed += s => KannuColors.Apply(s.LightColors);
         var statusDirectory = StatusPaths.DefaultStatusDirectory();
         Directory.CreateDirectory(statusDirectory);
 

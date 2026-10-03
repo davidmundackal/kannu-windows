@@ -261,6 +261,10 @@ public sealed class AppSettingsTests : IDisposable
             OpenOnHover = false,
             LaunchAtLoginInitialized = true,
             CaffeinateSmart = true,
+            LightStyle = LightStyle.Minimal,
+            LightColors = new LightColors(PaletteColor.Blue, PaletteColor.Orange, PaletteColor.Pink),
+            SkinPath = @"C:\skins\a.png",
+            SkinScrim = 0.4,
             CaffeinateManual = true,
             LastOfferedReport = "crash-20261002T080000Z.txt",
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
