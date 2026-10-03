@@ -4,6 +4,23 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Settings search, a welcome window, monitor choice, fullscreen hide and a shortcut
+- **Developer label:** "Shell features: onboarding, shortcuts, multiple monitors, fullscreen hide, every virtual desktop, Settings search" ("where are we i need all those items shipped to test")
+- **Agent label:** Windows versions of macOS Kannu's onboarding, display placement, fullscreen hide, global shortcut and Settings search, shipped as v0.1.0-beta.6
+- **Changes:**
+  - Settings search: the index is read from the pages' own row and section titles, so it cannot
+    drift; a result opens its page, scrolls to the row and flashes it.
+  - `WelcomeWindow`: shown once after the Terms; the lights in the user's colours, connect agents,
+    find the tray eye.
+  - Placement: the main display or the pointer's monitor, positioned in that monitor's pixels so a
+    differently scaled monitor works; the edge-reveal zone now uses the window's real position.
+  - Fullscreen: no reveal while `SHQueryUserNotificationState` reports busy, D3D full screen or
+    presentation; the always-visible notch steps aside. On by default.
+  - `ShortcutManager`: Ctrl+Alt+K toggles the notch, off by default, on a message-only window;
+    Settings says when another app owns the keys.
+  - Virtual desktops: the notch is a tool window, which Windows shows on every desktop; to verify.
+  - `AppSettings`: `Display`, `HideInFullscreen`, `ShortcutsEnabled`, `OnboardingDone`.
+
 ### 2026-10-03 - Phone notifications, the still-waiting reminder and Windows notifications
 - **Developer label:** "Phone notifications (ntfy, Pushover, webhook), the still-waiting reminder and Windows toasts" ("where are we i need all those items shipped to test")
 - **Agent label:** Port of macOS Kannu's AgentStatusNotificationBridge and AgentWaitReminder, plus Windows toasts (D3), shipped as v0.1.0-beta.5

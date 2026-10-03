@@ -17,6 +17,16 @@ using System.Text.Json.Nodes;
 
 namespace Kannu.Core;
 
+/// <summary>Which monitor the notch appears on.</summary>
+public enum NotchDisplay
+{
+    /// <summary>The main display (Windows' primary monitor).</summary>
+    Primary,
+
+    /// <summary>The monitor the pointer is on when the notch appears.</summary>
+    Pointer,
+}
+
 public enum NotchStyle
 {
     /// <summary>Attached to the top edge, rounded below: macOS Kannu's standard notch.</summary>
@@ -42,6 +52,17 @@ public sealed record AppSettings
     public bool RevealOnTopEdge { get; init; }
 
     public bool OpenOnHover { get; init; } = true;
+
+    public NotchDisplay Display { get; init; } = NotchDisplay.Primary;
+
+    /// <summary>Stay out of full-screen apps, games and presentations. On by default.</summary>
+    public bool HideInFullscreen { get; init; } = true;
+
+    /// <summary>Ctrl+Alt+K opens and closes the notch. Off by default: a global shortcut takes the keys from every app.</summary>
+    public bool ShortcutsEnabled { get; init; }
+
+    /// <summary>The first-run welcome was shown.</summary>
+    public bool OnboardingDone { get; init; }
 
     public LightStyle LightStyle { get; init; } = LightStyle.Classic;
 
@@ -116,6 +137,10 @@ public sealed record AppSettings
             HideUntilActivity = Bool(root, "hideUntilActivity") ?? defaults.HideUntilActivity,
             RevealOnTopEdge = Bool(root, "revealOnTopEdge") ?? defaults.RevealOnTopEdge,
             OpenOnHover = Bool(root, "openOnHover") ?? defaults.OpenOnHover,
+            Display = String(root, "display") == "pointer" ? NotchDisplay.Pointer : NotchDisplay.Primary,
+            HideInFullscreen = Bool(root, "hideInFullscreen") ?? defaults.HideInFullscreen,
+            ShortcutsEnabled = Bool(root, "shortcutsEnabled") ?? false,
+            OnboardingDone = Bool(root, "onboardingDone") ?? false,
             LightStyle = String(root, "lightStyle") == "minimal" ? LightStyle.Minimal : LightStyle.Classic,
             LightColors = new LightColors(
                 Palette(root, "activeColor") ?? LightColors.Default.Active,
@@ -153,6 +178,10 @@ public sealed record AppSettings
             ["revealOnTopEdge"] = RevealOnTopEdge,
             ["openOnHover"] = OpenOnHover,
         };
+        root["display"] = Display == NotchDisplay.Pointer ? "pointer" : "primary";
+        root["hideInFullscreen"] = HideInFullscreen;
+        root["shortcutsEnabled"] = ShortcutsEnabled;
+        if (OnboardingDone) root["onboardingDone"] = true;
         root["lightStyle"] = LightStyle == LightStyle.Minimal ? "minimal" : "classic";
         root["activeColor"] = LightColors.Active.ToString().ToLowerInvariant();
         root["awaitingColor"] = LightColors.Awaiting.ToString().ToLowerInvariant();

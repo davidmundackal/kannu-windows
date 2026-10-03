@@ -55,7 +55,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Local desktop notifications (toasts) | Windows only | **Done (D3)** | Off by default. Yellow and red, and the reminder, through the tray icon's notification |
 | **Notch skins** (image clipped to the notch, scrim) | Kannu | **Done** | Settings › Notch › Notch skin: PNG/JPG/BMP/GIF (first frame) copied to `%APPDATA%\Kannu\skins`, `ImageBrush` UniformToFill, "Darken the picture" scrim 0–90 %. SVG not supported |
 | Tray eye (menu-bar eye) | Kannu | **Done** (Restart doable) | Eye tinted by the light; left click opens the notch with its tabs (closes after 3 s unless the pointer is on it); menu: Open Kannu, Settings…, Agent hooks, status folder, updates, Quit |
-| Shortcuts off by default; launch at login on by default | Kannu | **Doable** | §5 |
+| Shortcuts off by default; launch at login on by default | Kannu | **Done** | Ctrl+Alt+K (macOS's ⇧⌘I is developer tools in every Windows browser and editor) |
 
 ## 3. Usage and quota
 | Feature | Origin | Windows | How on Windows / why |
@@ -89,21 +89,21 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Physical-notch features (notch height/width, dwell on the hardware notch rect) | Atoll | **Not applicable** | No notch hardware to hide behind. Instead the notch is **hidden by default** and comes out the way macOS's hide-until-hover island does (next rows) |
 | Hover to open, click outside to close | Atoll | **Partial** | Hover open/close is done. Click-outside close is doable (low-level mouse hook or deactivation) |
 | Two-finger scroll open/close, swipe to skip track, trackpad haptics | Atoll | **Doable / Can't** | Scroll via `WM_MOUSEWHEEL` on precision touchpads is doable. Haptics can't be done |
-| Visible on every virtual desktop and over fullscreen apps | Kannu | **Decide (D6)** | Pinning to all desktops needs the *undocumented* `IVirtualDesktopPinnedApps`. Exclusive-fullscreen games always cover topmost windows |
-| Hide while a fullscreen app or video runs | Kannu/Atoll | **Doable** | `SHQueryUserNotificationState` (D3D fullscreen, presentation mode, busy) |
+| Visible on every virtual desktop and over fullscreen apps | Kannu | **Done, to verify (D6)** | The notch is a tool window with no taskbar entry, which Windows does not assign to one desktop, so it shows on every desktop without the undocumented pinning API. Beta testers: please confirm. Exclusive-fullscreen games still cover topmost windows |
+| Hide while a fullscreen app or video runs | Kannu/Atoll | **Done** | `SHQueryUserNotificationState`: no reveal while busy, D3D full screen or presenting; the always-visible notch steps aside. Settings › Notch › Placement, on by default |
 | "Where Kannu appears": external takes over / all displays / built-in only / chosen display | Kannu | **Doable** | `Screen.AllScreens` + per-monitor DPI; the resolver logic and its tests port as is |
-| Open on the display you are using (tray click) | Kannu | **Partial** | Tray click opens the notch, on the primary display until multi-display placement is ported |
+| Open on the display you are using (tray click) | Kannu | **Done** | Settings › Notch › Placement: main display, or the monitor the pointer is on each time the notch comes out; per-monitor DPI |
 | Hidden until something happens (agent activity reveals it for 7 s; hover keeps it out; 7 s after the pointer leaves) | Kannu | **Done** | `NotchPresence` (Core, tested). Windows reveals on light changes only (a chat appearing lit, a light turning green, yellow or red), not on every hook event as macOS does: the user's choice. Settings › Notch › "Stay hidden until something happens" (on) |
 | Reveal by resting the pointer at the top edge | Kannu | **Done, off by default** | macOS always allows it on hidden displays; on Windows it is opt-in (Settings › Notch). 20 Hz cursor poll only while hidden and enabled, 1 s dwell, macOS's entry zone |
 | Header, tabs, minimalistic UI mode | Atoll | **Partial** | Open notch has icon-only round tabs (80 ms hover selects, as macOS) and a Settings gear. Agents is the only tab until Usage and the D9 features land. Minimalistic mode: not needed while there is one tab |
 | Hide Kannu from screenshots and recordings | Atoll | **Doable** | `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` |
 | Custom app icon | Atoll | **Avoid** | No Dock icon on Windows; the tray eye is the identity |
 | Idle animations (shimmer, neon eyes, Lottie/video), 04:20 easter egg, first-launch hello | Atoll + Kannu | **Decide (D9)** | Doable (LottieSharp / MediaElement); purely decorative |
-| **Settings window** (21 tabs, search across 208 entries, scroll-to-highlight) | Kannu | **Partial** | Windows 11 style (nav pane, cards, toggle switches, light/dark and accent from Windows): Notch, Agents (hook install/remove per agent) and About pages. More pages, and search, come with their features |
-| **Onboarding** (profile presets, light style, caffeinate) | Atoll + Kannu | **Doable** | |
+| **Settings window** (21 tabs, search across 208 entries, scroll-to-highlight) | Kannu | **Done** | Windows 11 style. Search reads every row and section title from the pages themselves (no hand-kept index), opens the page, scrolls to the row and highlights it |
+| **Onboarding** (profile presets, light style, caffeinate) | Atoll + Kannu | **Done (reduced)** | One welcome window after the Terms: the lights, connect agents, find the tray eye, open Settings. No profile presets |
 | **Terms of Use gate**: nothing runs before acceptance; the updater starts after it | Kannu | **Done** | Windows edition of the terms (`TERMS.md`, D8). `App.OnStartup` shows them before the watcher, notch, tray or updater start; Decline quits |
 | Launch at login (on by default, repairs a stale entry) | Kannu | **Done** | HKCU `Run` value pointing at Velopack's stable launcher; on once for a fresh install, repaired if stale, removed on uninstall; Settings › General shows when Task Manager turned it off. Not offered in developer/portable builds |
-| Global shortcuts (toggle notch, etc.; off by default) | Kannu/Atoll | **Doable** | `RegisterHotKey` |
+| Global shortcuts (toggle notch, etc.; off by default) | Kannu/Atoll | **Done** | `RegisterHotKey` on a message-only window; Settings says when another app owns the keys |
 | Localization (17 languages in `Localizable.xcstrings`) | Atoll + Kannu | **Doable** | Convert the xcstrings to `.resx` and reuse the translations for shared strings |
 | Auto-update | Kannu | **Done** | Velopack. macOS uses Sparkle |
 | Installer / release workflow / codename / release notes | Kannu | **Done** | `Kannu-win-Setup.exe`, tag-driven `release.yml` |
@@ -178,17 +178,17 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 
 ## Roadmap (Kannu's own features before inherited ones)
 1. **Phase 2 – shell essentials:**
-   - Settings window with search (window done; search to come);
+   - Settings window with search (done);
    - Terms gate (D8), with the updater moved behind it (done);
-   - onboarding;
+   - onboarding (done);
    - launch at login;
    - tray left-click (done);
-   - display placement;
+   - display placement (done);
    - hidden-until-activity notch (D7) (done);
-   - fullscreen hide;
+   - fullscreen hide (done);
    - capture exclusion;
    - crash, hang and log reports;
-   - shortcuts;
+   - shortcuts (done);
    - localization plumbing.
 2. **Phase 3 – Kannu's agent extras:**
    - light style, palette, breathing and blink (done);

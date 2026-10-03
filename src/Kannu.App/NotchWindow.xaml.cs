@@ -58,6 +58,9 @@ public partial class NotchWindow : Window
     private readonly NotchPresence _presence = new();
     private readonly DispatcherTimer _deadline;
     private readonly DispatcherTimer _edgePoll;
+
+    /// <summary>Only while the notch is always visible and must keep out of full-screen apps.</summary>
+    private readonly DispatcherTimer _fullscreenPoll;
     private readonly DispatcherTimer _tabHover;
 
     private NotchPresenceState _shown = NotchPresenceState.Hidden;
@@ -88,6 +91,8 @@ public partial class NotchWindow : Window
             _presence.Tick(Now);
             Apply();
         };
+        _fullscreenPoll = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+        _fullscreenPoll.Tick += (_, _) => ApplyFullscreen();
         _edgePoll = new DispatcherTimer { Interval = EdgePollInterval };
         _edgePoll.Tick += (_, _) => PollEdge();
         _tabHover = new DispatcherTimer { Interval = TabHoverDelay };
@@ -105,6 +110,8 @@ public partial class NotchWindow : Window
         KannuColors.Changed += ApplyLights;
         model.Activity += () =>
         {
+            // A full-screen app, game or presentation is not interrupted; the tray eye still opens the notch.
+            if (_settings.Current.HideInFullscreen && NativeMethods.IsFullscreenBusy()) return;
             _presence.AgentActivity(Now);
             Apply();
         };
@@ -121,6 +128,7 @@ public partial class NotchWindow : Window
         Closed += (_, _) =>
         {
             SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+            _fullscreenPoll.Stop();
             settings.Changed -= ApplySettings;
             KannuColors.Changed -= ApplyLights;
         };
@@ -138,11 +146,33 @@ public partial class NotchWindow : Window
     // SystemEvents raise on their own thread.
     private void OnDisplaySettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DockToTop);
 
+    /// <summary>
+    /// Top centre of the chosen monitor's work area, in that monitor's pixels: on a monitor with another
+    /// scale WPF then raises DpiChanged, and this runs again at the new size.
+    /// </summary>
     private void DockToTop()
     {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero && NativeMethods.MonitorWorkArea(_settings.Current.Display == NotchDisplay.Pointer) is var (work, scale))
+        {
+            var width = (int)Math.Round(Width * scale);
+            NativeMethods.MoveWindow(hwnd, work.Left + (work.Right - work.Left - width) / 2, work.Top);
+            return;
+        }
         var area = SystemParameters.WorkArea;
         Left = area.Left + (area.Width - Width) / 2;
         Top = area.Top;
+    }
+
+    /// <summary>The always-visible notch steps aside while a full-screen app, game or presentation is in front.</summary>
+    private void ApplyFullscreen()
+    {
+        var s = _settings.Current;
+        var watch = !s.HideUntilActivity && s.HideInFullscreen;
+        if (watch && !_fullscreenPoll.IsEnabled) _fullscreenPoll.Start();
+        else if (!watch && _fullscreenPoll.IsEnabled) _fullscreenPoll.Stop();
+        var hide = watch && _shown != NotchPresenceState.Open && NativeMethods.IsFullscreenBusy();
+        Pill.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
     }
 
     private void ApplySettings(AppSettings settings)
@@ -155,7 +185,9 @@ public partial class NotchWindow : Window
         ApplySkin(settings);
         ApplyLights();
         _presence.Configure(settings.HideUntilActivity, settings.OpenOnHover, Now);
+        DockToTop();
         Apply(force: true);
+        ApplyFullscreen();
     }
 
     /// <summary>macOS radii: notch 14 closed and 24 open below a flat top; pill a capsule closed, 24 open.</summary>
@@ -282,6 +314,9 @@ public partial class NotchWindow : Window
             var wasOpen = _shown == NotchPresenceState.Open;
             _shown = state;
             if (state == NotchPresenceState.Hidden) _edgeUnconfirmed = false;
+            // "The monitor the pointer is on": chosen each time the notch comes out.
+            if (wasHidden && state != NotchPresenceState.Hidden && _settings.Current.Display == NotchDisplay.Pointer) DockToTop();
+            if (state == NotchPresenceState.Open) Pill.Visibility = Visibility.Visible;
             if (wasHidden != (state == NotchPresenceState.Hidden) || force) Slide(visible: state != NotchPresenceState.Hidden);
             if (wasOpen != (state == NotchPresenceState.Open) || force)
             {
@@ -400,11 +435,12 @@ public partial class NotchWindow : Window
         }
 
         // macOS's entry zone: the closed notch's width plus 8 each side, its height plus 10, at the top.
-        var width = (CollapsedWidth + 16) * toDevice.M11;
+        // From the window's real screen position: Left and Top are not pixels on a scaled monitor.
+        var corner = PointToScreen(new Point(0, 0));
         var zone = new Rect(
-            (Left + (Width - CollapsedWidth - 16) / 2) * toDevice.M11,
-            Top * toDevice.M22,
-            width,
+            corner.X + (Width - CollapsedWidth - 16) / 2 * toDevice.M11,
+            corner.Y,
+            (CollapsedWidth + 16) * toDevice.M11,
             (CollapsedHeight + 10) * toDevice.M22);
         if (!zone.Contains(new Point(point.X, point.Y)))
         {

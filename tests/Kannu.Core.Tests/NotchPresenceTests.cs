@@ -247,6 +247,9 @@ public sealed class AppSettingsTests : IDisposable
         Assert.True(settings.HideUntilActivity);
         Assert.False(settings.RevealOnTopEdge);
         Assert.True(settings.OpenOnHover);
+        Assert.True(settings.HideInFullscreen);
+        Assert.False(settings.ShortcutsEnabled);
+        Assert.Equal(NotchDisplay.Primary, settings.Display);
         Assert.True(TermsOfUse.NeedsAcceptance(settings));
     }
 
@@ -273,6 +276,10 @@ public sealed class AppSettingsTests : IDisposable
             PushOnInactive = true,
             WaitReminderMinutes = 10,
             ToastsEnabled = true,
+            Display = NotchDisplay.Pointer,
+            HideInFullscreen = false,
+            ShortcutsEnabled = true,
+            OnboardingDone = true,
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
         settings.Save(File);
         var loaded = AppSettings.Load(File);

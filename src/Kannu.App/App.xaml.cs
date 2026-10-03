@@ -29,6 +29,7 @@ public partial class App : Application
     private FreezeWatchdog? _watchdog;
     private CaffeinateManager? _caffeinate;
     private NotificationManager? _notifications;
+    private ShortcutManager? _shortcuts;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -75,6 +76,7 @@ public partial class App : Application
         _updates = new UpdateService();
         var updates = _updates;
         void OpenSettings() => SettingsWindow.Open(settings, updates, statusDirectory);
+        void OpenSettingsAt(string page) => SettingsWindow.Open(settings, updates, statusDirectory, page);
         notch.SettingsRequested += OpenSettings;
         _caffeinate = new CaffeinateManager(settings);
         model.Updated += _caffeinate.Update;
@@ -91,10 +93,13 @@ public partial class App : Application
             if (args.PropertyName == nameof(NotchViewModel.Summary)) _tray.SetSummary(model.Summary);
         };
 
+        _shortcuts = new ShortcutManager(settings, notch.ToggleFromTray);
+
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         notch.Show();
         _monitor.Start();
         _updates.Start();
+        WelcomeWindow.ShowOnce(settings, OpenSettingsAt);
 
         // macOS offers the last crash a few seconds after launch, once everything is up.
         var offer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
@@ -112,6 +117,7 @@ public partial class App : Application
         _watchdog?.Dispose();
         _caffeinate?.Dispose();
         _notifications?.Dispose();
+        _shortcuts?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();

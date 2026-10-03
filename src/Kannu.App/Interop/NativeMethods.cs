@@ -91,4 +91,80 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool DestroyIcon(IntPtr hIcon);
+
+    // ---- Placement (multiple monitors) ----
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int Size;
+        public RECT Monitor;
+        public RECT Work;
+        public uint Flags;
+    }
+
+    /// <summary>
+    /// The work area (taskbar excluded) of the monitor under the pointer, or of the primary monitor,
+    /// in physical pixels, with that monitor's scale (1.0 at 96 DPI).
+    /// </summary>
+    public static (RECT Work, double Scale)? MonitorWorkArea(bool underPointer)
+    {
+        var point = new POINT();
+        if (underPointer && !GetCursorPos(out point)) point = new POINT();
+        // MONITOR_DEFAULTTOPRIMARY: (0,0) is always on the primary monitor.
+        var monitor = MonitorFromPoint(underPointer ? point : new POINT(), 1);
+        var info = new MONITORINFO { Size = Marshal.SizeOf<MONITORINFO>() };
+        if (monitor == IntPtr.Zero || !GetMonitorInfoW(monitor, ref info)) return null;
+        var scale = GetDpiForMonitor(monitor, 0, out var dpiX, out _) == 0 && dpiX > 0 ? dpiX / 96.0 : 1.0;
+        return (info.Work, scale);
+    }
+
+    /// <summary>Moves the window's top-left corner, in physical pixels, without resizing or activating it.</summary>
+    public static void MoveWindow(IntPtr hwnd, int x, int y) =>
+        SetWindowPos(hwnd, IntPtr.Zero, x, y, 0, 0, 0x0001 /* NOSIZE */ | 0x0004 /* NOZORDER */ | 0x0010 /* NOACTIVATE */);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT point, uint flags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfoW(IntPtr monitor, ref MONITORINFO info);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+    // ---- Fullscreen ----
+
+    /// <summary>
+    /// A full-screen app, a full-screen game or a presentation is in front (QUNS_BUSY,
+    /// QUNS_RUNNING_D3D_FULL_SCREEN, QUNS_PRESENTATION_MODE): the notch keeps out of the way.
+    /// </summary>
+    public static bool IsFullscreenBusy() =>
+        SHQueryUserNotificationState(out var state) == 0 && state is 2 or 3 or 4;
+
+    [DllImport("shell32.dll")]
+    private static extern int SHQueryUserNotificationState(out int state);
+
+    // ---- Global shortcuts ----
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool RegisterHotKey(IntPtr hwnd, int id, uint modifiers, uint key);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
 }

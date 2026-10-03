@@ -34,6 +34,17 @@
                     <TextBlock x:Name="NavVersion" FontSize="12" Foreground="{DynamicResource Kannu.TextSecondary}" />
                 </StackPanel>
             </StackPanel>
+            <!-- Settings search: the rows' own titles and descriptions are the index. -->
+            <Grid DockPanel.Dock="Top" Margin="4,0,4,16">
+                <TextBox x:Name="SearchBox" Style="{StaticResource Kannu.TextBox}" MinWidth="0" Padding="32,5,8,5"
+                         TextChanged="Search_TextChanged" KeyDown="Search_KeyDown" AutomationProperties.Name="Find a setting" />
+                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE721;" FontSize="13" Margin="11,0,0,0"
+                           HorizontalAlignment="Left" IsHitTestVisible="False" Foreground="{DynamicResource Kannu.TextSecondary}" />
+                <TextBlock x:Name="SearchHint" Text="Find a setting" Margin="33,0,0,0" VerticalAlignment="Center" FontSize="14"
+                           IsHitTestVisible="False" Foreground="{DynamicResource Kannu.TextSecondary}" />
+            </Grid>
+            <ListBox x:Name="SearchResults" DockPanel.Dock="Top" Style="{StaticResource Kannu.NavList}" Visibility="Collapsed"
+                     SelectionChanged="SearchResults_SelectionChanged" />
             <ListBox x:Name="Nav" Style="{StaticResource Kannu.NavList}" SelectionChanged="Nav_SelectionChanged">
                 <ListBoxItem Tag="General">
                     <StackPanel Orientation="Horizontal">
@@ -90,6 +101,23 @@
                             <CheckBox x:Name="LoginToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Login_Click" />
                         </Grid>
                     </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Keyboard" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE765;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Open the notch with Ctrl+Alt+K" />
+                                    <TextBlock x:Name="ShortcutDescription" Style="{StaticResource Kannu.RowDescription}" Text="Works from any app." />
+                                </StackPanel>
+                                <CheckBox x:Name="ShortcutToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Shortcut_Click" />
+                            </Grid>
+                    </Border>
                 </StackPanel>
 
                 <!-- Notch -->
@@ -131,6 +159,44 @@
                             </StackPanel>
                         </RadioButton>
                     </UniformGrid>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Placement" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE7F4;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Display" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Where the notch appears when you have more than one monitor." />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <RadioButton x:Name="DisplayPrimary" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display" Margin="0,0,6,0"
+                                                 Content="Main display" Checked="Display_Checked" />
+                                    <RadioButton x:Name="DisplayPointer" Style="{StaticResource Kannu.ChoiceTile}" GroupName="Display"
+                                                 Content="Where the pointer is" Checked="Display_Checked" />
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE740;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Stay out of full-screen apps" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="While a full-screen app, game or presentation is in front, the notch does not come out on its own. The tray eye still opens it." />
+                                </StackPanel>
+                                <CheckBox x:Name="FullscreenToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="Fullscreen_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
 
                     <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Traffic light" />
                     <Border Style="{StaticResource Kannu.Card}">

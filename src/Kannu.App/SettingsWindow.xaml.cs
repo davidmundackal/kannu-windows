@@ -14,9 +14,11 @@
 
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -98,6 +100,146 @@ public partial class SettingsWindow : Window
         if (page == "Agents") BuildAgentRows();
     }
 
+    // ---- Search ----
+
+    private sealed record SearchHit(string Page, string Title, string Description, FrameworkElement Target);
+
+    /// <summary>
+    /// Every row and section title on every page, read from the pages themselves, so a new row is
+    /// searchable without a hand-kept index to drift (macOS's settingsSearchIndex lesson).
+    /// </summary>
+    private List<SearchHit> SearchIndex()
+    {
+        var hits = new List<SearchHit>();
+        var rowTitle = FindResource("Kannu.RowTitle");
+        var sectionTitle = FindResource("Kannu.SectionTitle");
+        var description = FindResource("Kannu.RowDescription");
+        foreach (var (page, panel) in new (string, FrameworkElement)[]
+                 {
+                     ("General", GeneralPage), ("Notch", NotchPage), ("Agents", AgentsPage),
+                     ("Notifications", NotificationsPage), ("About", AboutPage),
+                 })
+        {
+            foreach (var text in Descendants(panel))
+            {
+                if (text.Style != rowTitle && text.Style != sectionTitle || string.IsNullOrWhiteSpace(text.Text)) continue;
+                var detail = (text.Parent as Panel)?.Children.OfType<TextBlock>()
+                    .FirstOrDefault(t => t.Style == description)?.Text ?? "";
+                var target = text.Style == rowTitle ? FindRow(text) : text;
+                hits.Add(new SearchHit(page, text.Text, detail, target));
+            }
+        }
+        return hits;
+    }
+
+    private static IEnumerable<TextBlock> Descendants(DependencyObject root)
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is TextBlock text) yield return text;
+            foreach (var nested in Descendants(child)) yield return nested;
+        }
+    }
+
+    /// <summary>The settings row (or choice tile) a title belongs to, for the highlight.</summary>
+    private static FrameworkElement FindRow(FrameworkElement element)
+    {
+        for (DependencyObject? node = element; node is not null; node = LogicalTreeHelper.GetParent(node))
+        {
+            if (node is Grid { MinHeight: > 0 } row) return row;
+            if (node is RadioButton tile) return tile;
+            if (node is Border { Style: not null } card && card.Style == card.TryFindResource("Kannu.Card")) return card;
+        }
+        return element;
+    }
+
+    private void Search_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var query = SearchBox.Text.Trim();
+        SearchHint.Visibility = SearchBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SearchResults.Items.Clear();
+        if (query.Length == 0)
+        {
+            SearchResults.Visibility = Visibility.Collapsed;
+            Nav.Visibility = Visibility.Visible;
+            return;
+        }
+        var hits = SearchIndex()
+            .Where(h => h.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)
+                        || h.Description.Contains(query, StringComparison.CurrentCultureIgnoreCase)
+                        || h.Page.Contains(query, StringComparison.CurrentCultureIgnoreCase))
+            .OrderBy(h => h.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase) ? 0 : 1)
+            .Take(12);
+        foreach (var hit in hits)
+        {
+            var label = new StackPanel();
+            label.Children.Add(new TextBlock { Text = hit.Title, FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis });
+            label.Children.Add(new TextBlock
+            {
+                Text = hit.Page,
+                FontSize = 12,
+                Foreground = (Brush)FindResource("Kannu.TextSecondary"),
+            });
+            SearchResults.Items.Add(new ListBoxItem { Content = label, Tag = hit });
+        }
+        if (SearchResults.Items.Count == 0)
+        {
+            SearchResults.Items.Add(new ListBoxItem { Content = "No settings found", IsEnabled = false });
+        }
+        SearchResults.Visibility = Visibility.Visible;
+        Nav.Visibility = Visibility.Collapsed;
+    }
+
+    private void Search_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape) SearchBox.Clear();
+        else if (e.Key == System.Windows.Input.Key.Enter && SearchResults.Items.Count > 0 && ((ListBoxItem)SearchResults.Items[0]).Tag is SearchHit)
+            SearchResults.SelectedIndex = 0;
+    }
+
+    private void SearchResults_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if ((SearchResults.SelectedItem as ListBoxItem)?.Tag is not SearchHit hit) return;
+        SearchBox.Clear();
+        Select(hit.Page);
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            hit.Target.BringIntoView();
+            Highlight(hit.Target);
+        });
+    }
+
+    /// <summary>A short accent wash over the found row, gone in a second and a half (instant with animations off).</summary>
+    private void Highlight(FrameworkElement target)
+    {
+        var accent = ((SolidColorBrush)FindResource("Kannu.Accent")).Color;
+        var wash = new SolidColorBrush(Color.FromArgb(0x40, accent.R, accent.G, accent.B));
+        var original = target switch
+        {
+            Panel panel => panel.Background,
+            Control control => control.Background,
+            Border border => border.Background,
+            _ => null,
+        };
+        void Set(Brush? brush)
+        {
+            switch (target)
+            {
+                case Panel panel: panel.Background = brush; break;
+                case Control control: control.Background = brush; break;
+                case Border border: border.Background = brush; break;
+            }
+        }
+        Set(wash);
+        var fade = new System.Windows.Media.Animation.DoubleAnimation(1, 0,
+            SystemParameters.ClientAreaAnimation ? TimeSpan.FromMilliseconds(1500) : TimeSpan.FromMilliseconds(600))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(300),
+        };
+        fade.Completed += (_, _) => Set(original);
+        wash.BeginAnimation(Brush.OpacityProperty, fade);
+    }
+
     // ---- General ----
 
     private void LoadLogin()
@@ -121,6 +263,19 @@ public partial class SettingsWindow : Window
         LaunchAtLoginManager.Set(LoginToggle.IsChecked == true);
         LoadLogin();
     }
+
+    private void Display_Checked(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var display = DisplayPointer.IsChecked == true ? NotchDisplay.Pointer : NotchDisplay.Primary;
+        _settings.Update(s => s with { Display = display });
+    }
+
+    private void Fullscreen_Click(object sender, RoutedEventArgs e) =>
+        _settings.Update(s => s with { HideInFullscreen = FullscreenToggle.IsChecked == true });
+
+    private void Shortcut_Click(object sender, RoutedEventArgs e) =>
+        _settings.Update(s => s with { ShortcutsEnabled = ShortcutToggle.IsChecked == true });
 
     // ---- Notifications ----
 
@@ -236,6 +391,13 @@ public partial class SettingsWindow : Window
             : "Only the light that is currently lit.";
         BuildColorRows(s.LightColors);
         LoadNotifications(s);
+        DisplayPrimary.IsChecked = s.Display == NotchDisplay.Primary;
+        DisplayPointer.IsChecked = s.Display == NotchDisplay.Pointer;
+        FullscreenToggle.IsChecked = s.HideInFullscreen;
+        ShortcutToggle.IsChecked = s.ShortcutsEnabled;
+        ShortcutDescription.Text = s.ShortcutsEnabled && ShortcutManager.Taken
+            ? "Another app already uses Ctrl+Alt+K, so Kannu could not take it. Free it in that app, then turn this off and on."
+            : "Works from any app. Off by default, because a shortcut that works everywhere takes those keys from every other app.";
         SkinDescription.Text = s.SkinPath is { } skin && File.Exists(skin)
             ? Path.GetFileName(skin)
             : "A picture behind the notch: PNG, JPEG, GIF or BMP, cropped to fit.";
