@@ -97,6 +97,26 @@ public sealed class StatusRecord
     [JsonPropertyName("host_window")]
     public long? HostWindow { get; set; }
 
+    // Security findings (macOS hook v34/v35/v42). Carried on every write like `unattended`, so a clean
+    // event cannot erase a sighting before Kannu reads it; a check switched off drops its list. Null
+    // (omitted) when empty.
+
+    /// <summary>Hidden Unicode found in what the agent read or was given; newest three.</summary>
+    [JsonPropertyName("hidden_text")]
+    public List<HiddenTextEntry>? HiddenText { get; set; }
+
+    /// <summary>API keys and private keys in a prompt or a tool's input (fingerprints only); newest five.</summary>
+    [JsonPropertyName("secrets")]
+    public List<SecretEntry>? Secrets { get; set; }
+
+    /// <summary>Sensitive files a tool read or changed; newest five.</summary>
+    [JsonPropertyName("sensitive_paths")]
+    public List<SensitivePathEntry>? SensitivePaths { get; set; }
+
+    /// <summary>Calls that matched the user's agent policy; newest three.</summary>
+    [JsonPropertyName("policy")]
+    public List<PolicyEntry>? Policy { get; set; }
+
     /// <summary>Status files are untrusted input: any process running as the user can write one.</summary>
     internal const int MaxFileBytes = 64 * 1024;
 
@@ -106,6 +126,10 @@ public sealed class StatusRecord
     {
         var copy = (StatusRecord)MemberwiseClone();
         copy.TurnToolIds = TurnToolIds is null ? null : [.. TurnToolIds];
+        copy.HiddenText = HiddenText?.ConvertAll(e => e.Clone());
+        copy.Secrets = Secrets?.ConvertAll(e => e.Clone());
+        copy.SensitivePaths = SensitivePaths?.ConvertAll(e => e.Clone());
+        copy.Policy = Policy?.ConvertAll(e => e.Clone());
         return copy;
     }
 
@@ -154,6 +178,10 @@ public sealed class StatusRecord
                 HostPid = (int?)Count(root, "host_pid", int.MaxValue),
                 HostName = Str(root, "host_name"),
                 HostWindow = Count(root, "host_window"),
+                HiddenText = HiddenTextEntry.Carried(root),
+                Secrets = SecretEntry.Carried(root),
+                SensitivePaths = SensitivePathEntry.Carried(root),
+                Policy = PolicyEntry.Carried(root),
             };
         }
         catch (JsonException)

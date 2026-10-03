@@ -4,6 +4,23 @@ Each commit must add one new entry under `## [Unreleased]` before committing.
 
 ## [Unreleased]
 
+### 2026-10-03 - Agent Security: hook checks, findings, shield and policy
+- **Developer label:** "Agent Security: findings, shield, secrets and hidden-text checks, agent policy, MCP watch, ADR" ("where are we i need all those items shipped to test")
+- **Agent label:** Port of macOS Kannu's in-hook checks (v35-v42), AgentSecurityFinding, finding groups, MCPServerWatch and the security push, without ADR (D5); shipped as v0.1.0-beta.8
+- **Changes:**
+  - Hook (`HookSecurity*`): hidden text, secrets (fingerprint only), sensitive files with a Windows
+    list and a bash/PowerShell/cmd command parser, and the agent policy with Claude Code and Cursor
+    deny outputs. Same status-file keys, caps and marker files as macOS; tampered entries are
+    re-sanitised. Key files count only under `~/.ssh`, as on macOS.
+  - `SecurityFindings`, `SecurityState`, `McpWatch` (Core): macOS's finding texts and ids, grouping,
+    acknowledge-until-worse, 24 h snooze, kept findings (50 per kind), the MCP baseline and
+    additions with Windows config paths. Tested.
+  - `SecurityMonitor`: scans status files and MCP configs every minute and after each rescan, syncs
+    the marker files with Settings, notifies once per high finding.
+  - Notch: a shield beside the lights and a pinned card for the top high finding.
+    Settings › Security: findings, checks, policy state, notifications. docs/SECURITY.md.
+  - 486 tests.
+
 ### 2026-10-03 - A Usage tab with Claude Code's plan limits
 - **Developer label:** "Usage and quota" ("where are we i need all those items shipped to test")
 - **Agent label:** Port of macOS Kannu's Claude usage statusline, ClaudeCachedUsage, UsageForecast and UsageAlertPolicy, shipped as v0.1.0-beta.7

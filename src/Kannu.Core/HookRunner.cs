@@ -21,8 +21,9 @@ public sealed record HookResult(string Output, HookDecision Decision, string Pro
 
 /// <summary>
 /// The body of <c>kannu-hook.exe</c>: one hook invocation, stdin JSON in, status file and stdout line
-/// out. A port of the macOS hook script's Python body (v43), minus the security checks (later phase)
-/// and the Unix terminal lookup. Kept in Core so tests drive the real thing.
+/// out. A port of the macOS hook script's Python body (v43), with its security checks (hidden text,
+/// secrets, sensitive files, agent policy: <see cref="HookSecurity"/>) and without the Unix terminal
+/// lookup. Kept in Core so tests drive the real thing.
 /// </summary>
 public static class HookRunner
 {
@@ -83,6 +84,11 @@ public static class HookRunner
         if (hookEvent == "SessionStart" && payload.Pick("source") is "compact" or "resume") return result with { Decision = HookDecision.Ignore };
 
         Directory.CreateDirectory(statusDirectory);
+
+        // The security checks run before the lock, as on macOS: it serialises every session's hooks and
+        // this is the only non-trivial CPU work in the hook.
+        var security = HookSecurityRun.Scan(payload, provider, hookEvent, statusDirectory, environment.Home);
+
         var statusFile = Path.Combine(statusDirectory, StatusPaths.StatusFileName(provider, sessionId));
 
         // Claude runs every hook group of one event as separate processes in parallel; the merge below
@@ -168,8 +174,13 @@ public static class HookRunner
             held.EndedOnError = null;
             ApplyTurn(held, turn, transcript);
             ApplyHost(held, environment.Host);
+            security.Apply(existing, held, payload, nowMs);
             TryWrite(statusFile, held);
-            return result with { Decision = HookDecision.Write(RawStateWire.Parse(existingState) ?? RawState.AwaitingInput) };
+            return result with
+            {
+                Output = HookOutput.For(provider, hookEvent, security.PolicyDeny, security.Notes.Agent, security.Notes.User),
+                Decision = HookDecision.Write(RawStateWire.Parse(existingState) ?? RawState.AwaitingInput),
+            };
         }
 
         var record = new StatusRecord
@@ -191,8 +202,13 @@ public static class HookRunner
         record.HostName = existing?.HostName;
         record.HostWindow = existing?.HostWindow;
         ApplyHost(record, environment.Host);
+        security.Apply(existing, record, payload, nowMs);
         TryWrite(statusFile, record);
-        return result with { Decision = HookDecision.Write(state) };
+        return result with
+        {
+            Output = HookOutput.For(provider, hookEvent, security.PolicyDeny, security.Notes.Agent, security.Notes.User),
+            Decision = HookDecision.Write(state),
+        };
     }
 
     private static (string Project, string Workdir) ProjectAndWorkdir(HookPayload payload)
@@ -280,6 +296,64 @@ public static class HookOutput
         "gemini" or "qwen" or "copilot" => "{}",
         _ => Allow,
     };
+
+    /// <summary>
+    /// The macOS <c>emit()</c>: a policy deny where the host's contract has one (Claude Code's
+    /// PreToolUse <c>permissionDecision</c>, Cursor's <c>permission</c>) — a deny never also says allow;
+    /// otherwise the hidden-text note on the events whose output carries context to the model; otherwise
+    /// <see cref="For(string)"/>. JSON is written as Python's <c>json.dumps</c> writes it (compact,
+    /// ASCII-only), keys in the same order.
+    /// </summary>
+    public static string For(string provider, string hookEvent, string? policyDeny, string? agentNote, string? userNote)
+    {
+        var sb = new System.Text.StringBuilder();
+        if (!string.IsNullOrEmpty(policyDeny) && AgentPolicyCheck.CanDeny(provider, hookEvent))
+        {
+            if (provider == "cursor")
+            {
+                sb.Append("{\"permission\":\"deny\",\"user_message\":");
+                SecurityText.AppendJsonString(sb, policyDeny);
+                sb.Append(",\"agent_message\":");
+                SecurityText.AppendJsonString(sb, policyDeny);
+                sb.Append('}');
+            }
+            else
+            {
+                sb.Append("{\"hookSpecificOutput\":{\"hookEventName\":");
+                SecurityText.AppendJsonString(sb, hookEvent);
+                sb.Append(",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":");
+                SecurityText.AppendJsonString(sb, policyDeny);
+                sb.Append("}}");
+            }
+            return sb.ToString();
+        }
+        if (provider is "gemini" or "qwen" or "copilot") return "{}";
+        if (string.IsNullOrEmpty(agentNote) || !HiddenText.NoteEvents.TryGetValue(provider, out var events) || !events.Contains(hookEvent))
+        {
+            return For(provider);
+        }
+        if (provider == "cursor")
+        {
+            sb.Append("{\"permission\":\"allow\",\"continue\":true,\"additional_context\":");
+            SecurityText.AppendJsonString(sb, agentNote);
+            sb.Append('}');
+            return sb.ToString();
+        }
+        var context = new System.Text.StringBuilder("{\"hookEventName\":");
+        SecurityText.AppendJsonString(context, hookEvent);
+        context.Append(",\"additionalContext\":");
+        SecurityText.AppendJsonString(context, agentNote);
+        context.Append('}');
+        if (provider == "codex") return "{\"hookSpecificOutput\":" + context + "}";
+        sb.Append("{\"permission\":\"allow\",\"continue\":true,\"hookSpecificOutput\":").Append(context);
+        if (provider == "claude")
+        {
+            sb.Append(",\"systemMessage\":");
+            SecurityText.AppendJsonString(sb, userNote ?? "");
+        }
+        sb.Append('}');
+        return sb.ToString();
+    }
 
     /// <summary>
     /// What to print when the hook failed before it knew the provider for sure: the raw argument, with

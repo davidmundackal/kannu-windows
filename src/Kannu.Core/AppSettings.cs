@@ -61,6 +61,19 @@ public sealed record AppSettings
     /// <summary>Ctrl+Alt+K opens and closes the notch. Off by default: a global shortcut takes the keys from every app.</summary>
     public bool ShortcutsEnabled { get; init; }
 
+    // Agent Security (macOS defaults).
+    public bool DetectHiddenText { get; init; } = true;
+    public bool WarnAgentAboutHiddenText { get; init; }
+    public bool DetectSecrets { get; init; } = true;
+    public bool DetectSensitivePaths { get; init; } = true;
+    public bool WatchMcpServers { get; init; } = true;
+
+    /// <summary>Refuse a tool call that matches the agent policy (Claude Code and Cursor). Off by default: report only.</summary>
+    public bool EnforceAgentPolicy { get; init; }
+
+    public bool PushHighFindings { get; init; } = true;
+    public bool PushMediumFindings { get; init; }
+
     /// <summary>The first-run welcome was shown.</summary>
     public bool OnboardingDone { get; init; }
 
@@ -141,6 +154,14 @@ public sealed record AppSettings
             HideInFullscreen = Bool(root, "hideInFullscreen") ?? defaults.HideInFullscreen,
             ShortcutsEnabled = Bool(root, "shortcutsEnabled") ?? false,
             OnboardingDone = Bool(root, "onboardingDone") ?? false,
+            DetectHiddenText = Bool(root, "detectHiddenText") ?? true,
+            WarnAgentAboutHiddenText = Bool(root, "warnAgentAboutHiddenText") ?? false,
+            DetectSecrets = Bool(root, "detectSecrets") ?? true,
+            DetectSensitivePaths = Bool(root, "detectSensitivePaths") ?? true,
+            WatchMcpServers = Bool(root, "watchMcpServers") ?? true,
+            EnforceAgentPolicy = Bool(root, "enforceAgentPolicy") ?? false,
+            PushHighFindings = Bool(root, "pushHighFindings") ?? true,
+            PushMediumFindings = Bool(root, "pushMediumFindings") ?? false,
             LightStyle = String(root, "lightStyle") == "minimal" ? LightStyle.Minimal : LightStyle.Classic,
             LightColors = new LightColors(
                 Palette(root, "activeColor") ?? LightColors.Default.Active,
@@ -182,6 +203,14 @@ public sealed record AppSettings
         root["hideInFullscreen"] = HideInFullscreen;
         root["shortcutsEnabled"] = ShortcutsEnabled;
         if (OnboardingDone) root["onboardingDone"] = true;
+        root["detectHiddenText"] = DetectHiddenText;
+        root["warnAgentAboutHiddenText"] = WarnAgentAboutHiddenText;
+        root["detectSecrets"] = DetectSecrets;
+        root["detectSensitivePaths"] = DetectSensitivePaths;
+        root["watchMcpServers"] = WatchMcpServers;
+        root["enforceAgentPolicy"] = EnforceAgentPolicy;
+        root["pushHighFindings"] = PushHighFindings;
+        root["pushMediumFindings"] = PushMediumFindings;
         root["lightStyle"] = LightStyle == LightStyle.Minimal ? "minimal" : "classic";
         root["activeColor"] = LightColors.Active.ToString().ToLowerInvariant();
         root["awaitingColor"] = LightColors.Awaiting.ToString().ToLowerInvariant();

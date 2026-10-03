@@ -94,6 +94,30 @@ internal sealed class NotchViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>A high security finding nobody has acknowledged: the shield on the closed notch, the card on the open one.</summary>
+    public bool HasSecurityAlert => SecurityAlert is not null;
+
+    public FindingGroup? SecurityAlert { get; private set; }
+
+    public string SecurityAlertTitle => SecurityAlert?.Representative.Title ?? "";
+
+    public string SecurityAlertDetail => SecurityAlert is not { } g ? ""
+        : g.Representative.Summary + (VisibleFindings > 1 ? $"  ·  {VisibleFindings - 1} more in Settings" : "");
+
+    public int VisibleFindings { get; private set; }
+
+    public void UpdateSecurity(IReadOnlyList<FindingGroup> visible)
+    {
+        var alert = visible.FirstOrDefault(g => g.Severity == FindingSeverity.High);
+        var changed = alert?.Id != SecurityAlert?.Id || visible.Count != VisibleFindings;
+        SecurityAlert = alert;
+        VisibleFindings = visible.Count;
+        PropertyChanged?.Invoke(this, new(nameof(HasSecurityAlert)));
+        PropertyChanged?.Invoke(this, new(nameof(SecurityAlertTitle)));
+        PropertyChanged?.Invoke(this, new(nameof(SecurityAlertDetail)));
+        if (changed && !IsUsageTab) TabChanged?.Invoke();
+    }
+
     /// <summary>The Usage tab's bars, Claude's plan limits.</summary>
     public ObservableCollection<UsageBar> UsageBars { get; } = [];
 

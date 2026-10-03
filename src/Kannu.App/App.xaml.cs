@@ -31,6 +31,7 @@ public partial class App : Application
     private NotificationManager? _notifications;
     private ShortcutManager? _shortcuts;
     private UsageMonitor? _usage;
+    private SecurityMonitor? _security;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -79,6 +80,7 @@ public partial class App : Application
         void OpenSettings() => SettingsWindow.Open(settings, updates, statusDirectory);
         void OpenSettingsAt(string page) => SettingsWindow.Open(settings, updates, statusDirectory, page);
         notch.SettingsRequested += OpenSettings;
+        notch.SecurityRequested += () => OpenSettingsAt("Security");
         _caffeinate = new CaffeinateManager(settings);
         model.Updated += _caffeinate.Update;
         _caffeinate.HeldChanged += held => model.IsCaffeinated = held;
@@ -98,9 +100,14 @@ public partial class App : Application
 
         _monitor = new StatusMonitor(statusDirectory, model.Update, tokens => model.Tokens = tokens);
         _usage = new UsageMonitor(statusDirectory, model);
+        _security = new SecurityMonitor(statusDirectory, settings);
+        model.Updated += _security.Update;
+        var security = _security;
+        _security.Changed += () => model.UpdateSecurity(security.Visible);
         notch.Show();
         _monitor.Start();
         _usage.Start();
+        _security.Start();
         _updates.Start();
         WelcomeWindow.ShowOnce(settings, OpenSettingsAt);
 
@@ -122,6 +129,7 @@ public partial class App : Application
         _notifications?.Dispose();
         _shortcuts?.Dispose();
         _usage?.Dispose();
+        _security?.Dispose();
         _updates?.Dispose();
         _tray?.Dispose();
         _singleInstance?.Dispose();

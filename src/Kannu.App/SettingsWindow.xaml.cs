@@ -56,8 +56,10 @@ public partial class SettingsWindow : Window
 
         Load(settings.Current);
         settings.Changed += Load;
+        if (SecurityMonitor.Shared is { } security) security.Changed += OnFindingsChanged;
         Closed += (_, _) =>
         {
+            if (SecurityMonitor.Shared is { } monitor) monitor.Changed -= OnFindingsChanged;
             settings.Changed -= Load;
             _open = null;
         };
@@ -95,6 +97,8 @@ public partial class SettingsWindow : Window
         NotchPage.Visibility = page == "Notch" ? Visibility.Visible : Visibility.Collapsed;
         AgentsPage.Visibility = page == "Agents" ? Visibility.Visible : Visibility.Collapsed;
         NotificationsPage.Visibility = page == "Notifications" ? Visibility.Visible : Visibility.Collapsed;
+        SecurityPage.Visibility = page == "Security" ? Visibility.Visible : Visibility.Collapsed;
+        if (page == "Security") BuildFindings();
         if (page == "Notifications") LoadSecrets();
         AboutPage.Visibility = page == "About" ? Visibility.Visible : Visibility.Collapsed;
         if (page == "Agents") BuildAgentRows();
@@ -117,7 +121,7 @@ public partial class SettingsWindow : Window
         foreach (var (page, panel) in new (string, FrameworkElement)[]
                  {
                      ("General", GeneralPage), ("Notch", NotchPage), ("Agents", AgentsPage),
-                     ("Notifications", NotificationsPage), ("About", AboutPage),
+                     ("Security", SecurityPage), ("Notifications", NotificationsPage), ("About", AboutPage),
                  })
         {
             foreach (var text in Descendants(panel))
@@ -277,6 +281,181 @@ public partial class SettingsWindow : Window
     private void Shortcut_Click(object sender, RoutedEventArgs e) =>
         _settings.Update(s => s with { ShortcutsEnabled = ShortcutToggle.IsChecked == true });
 
+    // ---- Security ----
+
+    private void LoadSecurity(AppSettings s)
+    {
+        HiddenTextToggle.IsChecked = s.DetectHiddenText;
+        WarnAgentToggle.IsChecked = s.WarnAgentAboutHiddenText;
+        WarnAgentToggle.IsEnabled = s.DetectHiddenText;
+        SecretsToggle.IsChecked = s.DetectSecrets;
+        PathsToggle.IsChecked = s.DetectSensitivePaths;
+        McpToggle.IsChecked = s.WatchMcpServers;
+        EnforceToggle.IsChecked = s.EnforceAgentPolicy;
+        PushHighToggle.IsChecked = s.PushHighFindings;
+        PushMediumToggle.IsChecked = s.PushMediumFindings;
+
+        var path = HookSecurity.PolicyPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        PolicyDescription.Text = !File.Exists(path)
+            ? $"No policy. To block commands or tools, create {path} — see docs/SECURITY.md for the format."
+            : HookSecurity.LoadPolicy(path) is { } policy
+                ? $"{path}: {PolicyRuleCount(policy)} rules. Every match is a finding."
+                : $"{path} could not be read (bad JSON, too large, or a link), so no rules apply. Agents are never blocked by a broken policy.";
+    }
+
+    private static int PolicyRuleCount(AgentPolicy policy) => policy.Rules.Count;
+
+    private void SecurityToggle_Click(object sender, RoutedEventArgs e) => _settings.Update(s => s with
+    {
+        DetectHiddenText = HiddenTextToggle.IsChecked == true,
+        WarnAgentAboutHiddenText = WarnAgentToggle.IsChecked == true,
+        DetectSecrets = SecretsToggle.IsChecked == true,
+        DetectSensitivePaths = PathsToggle.IsChecked == true,
+        WatchMcpServers = McpToggle.IsChecked == true,
+        EnforceAgentPolicy = EnforceToggle.IsChecked == true,
+        PushHighFindings = PushHighToggle.IsChecked == true,
+        PushMediumFindings = PushMediumToggle.IsChecked == true,
+    });
+
+    private void OpenPolicyFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kannu");
+        Directory.CreateDirectory(folder);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = true });
+    }
+
+    private void OnFindingsChanged()
+    {
+        if (SecurityPage.Visibility == Visibility.Visible) BuildFindings();
+    }
+
+    private async void ScanNow_Click(object sender, RoutedEventArgs e)
+    {
+        if (SecurityMonitor.Shared is { } monitor) await monitor.ScanNowAsync();
+    }
+
+    private void Unhide_Click(object sender, RoutedEventArgs e) => SecurityMonitor.Shared?.Unhide();
+
+    /// <summary>One card per problem: what happened, how often, where, and what to do about it.</summary>
+    private void BuildFindings()
+    {
+        FindingRows.Children.Clear();
+        var monitor = SecurityMonitor.Shared;
+        var groups = monitor?.Visible ?? [];
+        if (groups.Count == 0)
+        {
+            var hidden = (monitor?.All.Count ?? 0) - groups.Count;
+            FindingRows.Children.Add(new Border
+            {
+                Style = (Style)FindResource("Kannu.Card"),
+                Child = new TextBlock
+                {
+                    Text = hidden > 0 ? $"Nothing new. {hidden} acknowledged or snoozed." : "Nothing found. Kannu keeps watching while agents run.",
+                    Style = (Style)FindResource("Kannu.RowDescription"),
+                    FontSize = 13,
+                },
+            });
+            return;
+        }
+        foreach (var group in groups) FindingRows.Children.Add(FindingCard(group));
+    }
+
+    private Border FindingCard(FindingGroup group)
+    {
+        var f = group.Representative;
+        var high = group.Severity == FindingSeverity.High;
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        grid.Children.Add(new TextBlock
+        {
+            Style = (Style)FindResource("Kannu.Icon"),
+            Text = high ? "\uEA18" : "\uE83D",
+            Foreground = high ? new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B)) : (Brush)FindResource("Kannu.TextSecondary"),
+            Margin = new Thickness(0, 2, 16, 0),
+            VerticalAlignment = VerticalAlignment.Top,
+        });
+
+        var body = new StackPanel();
+        Grid.SetColumn(body, 1);
+        var heading = new DockPanel();
+        var badge = new Border
+        {
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(6, 1, 6, 1),
+            Margin = new Thickness(8, 0, 0, 0),
+            Background = high ? new SolidColorBrush(Color.FromArgb(0x33, 0xF5, 0x9E, 0x0B)) : (Brush)FindResource("Kannu.ControlFill"),
+            Child = new TextBlock { Text = SecurityFindings.SeverityLabel(group.Severity), FontSize = 11 },
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        DockPanel.SetDock(badge, Dock.Right);
+        heading.Children.Add(badge);
+        heading.Children.Add(new TextBlock { Text = f.Title, Style = (Style)FindResource("Kannu.RowTitle"), TextWrapping = TextWrapping.Wrap });
+        body.Children.Add(heading);
+        body.Children.Add(new TextBlock { Text = f.Summary, Style = (Style)FindResource("Kannu.RowDescription"), TextWrapping = TextWrapping.Wrap, MaxHeight = 40 });
+
+        var when = group.Occurrences > 1
+            ? $"{group.Occurrences} occurrences · first {Local(group.FirstSeenMs)} · last {Local(group.LastSeenMs)}"
+            : Local(group.LastSeenMs);
+        if (group.Chats.Count > 1) when += $" · in {group.Chats.Count} chats";
+        body.Children.Add(new TextBlock { Text = when, Style = (Style)FindResource("Kannu.RowDescription"), Margin = new Thickness(0, 4, 0, 0) });
+
+        var details = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 8, 0, 0) };
+        foreach (var line in f.Evidence.Concat(f.KannuOnlyEvidence))
+        {
+            details.Children.Add(new TextBlock
+            {
+                Text = line,
+                Style = (Style)FindResource("Kannu.RowDescription"),
+                TextWrapping = TextWrapping.Wrap,
+                FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+            });
+        }
+        body.Children.Add(details);
+
+        var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+        Button Action(string text, Action click, bool accent = false)
+        {
+            var button = new Button
+            {
+                Content = text,
+                Style = (Style)FindResource(accent ? "Kannu.AccentButton" : "Kannu.Button"),
+                Margin = new Thickness(0, 0, 8, 0),
+            };
+            button.Click += (_, _) => click();
+            actions.Children.Add(button);
+            return button;
+        }
+        Button? detailsButton = null;
+        detailsButton = Action("Details", () =>
+        {
+            var open = details.Visibility == Visibility.Visible;
+            details.Visibility = open ? Visibility.Collapsed : Visibility.Visible;
+            detailsButton!.Content = open ? "Details" : "Hide details";
+        });
+        Action("Acknowledge", () => SecurityMonitor.Shared?.Acknowledge(group), accent: true);
+        Action("Snooze 24 h", () => SecurityMonitor.Shared?.Snooze(group));
+        if (f.RevealPath is { } reveal)
+        {
+            var path = reveal.StartsWith('~') ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + reveal[1..] : reveal;
+            Action("Show in folder", () =>
+            {
+                if (File.Exists(path)) Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+                else if (Path.GetDirectoryName(path) is { } dir && Directory.Exists(dir)) Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+            });
+        }
+        // What an agent can be told: title and evidence, never the summary's chat name or the decoded text.
+        Action("Copy for agent", () => Clipboard.SetText(
+            $"Kannu security finding ({SecurityFindings.SeverityLabel(group.Severity)}): {f.Title}\n" + string.Join("\n", f.Evidence)));
+        body.Children.Add(actions);
+        grid.Children.Add(body);
+        return new Border { Style = (Style)FindResource("Kannu.Card"), Child = grid, Margin = new Thickness(0, 0, 0, 4) };
+    }
+
+    private static string Local(long ms) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(ms).LocalDateTime.ToString("g", System.Globalization.CultureInfo.CurrentCulture);
+
     // ---- Notifications ----
 
     private static readonly int[] ReminderMinutes = [0, 5, 10, 15, 30];
@@ -391,6 +570,7 @@ public partial class SettingsWindow : Window
             : "Only the light that is currently lit.";
         BuildColorRows(s.LightColors);
         LoadNotifications(s);
+        LoadSecurity(s);
         DisplayPrimary.IsChecked = s.Display == NotchDisplay.Primary;
         DisplayPointer.IsChecked = s.Display == NotchDisplay.Pointer;
         FullscreenToggle.IsChecked = s.HideInFullscreen;

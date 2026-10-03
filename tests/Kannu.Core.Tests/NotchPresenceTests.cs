@@ -280,6 +280,14 @@ public sealed class AppSettingsTests : IDisposable
             HideInFullscreen = false,
             ShortcutsEnabled = true,
             OnboardingDone = true,
+            DetectHiddenText = false,
+            WarnAgentAboutHiddenText = true,
+            DetectSecrets = false,
+            DetectSensitivePaths = false,
+            WatchMcpServers = false,
+            EnforceAgentPolicy = true,
+            PushHighFindings = false,
+            PushMediumFindings = true,
         }, new DateTimeOffset(2026, 10, 2, 8, 30, 0, TimeSpan.Zero));
         settings.Save(File);
         var loaded = AppSettings.Load(File);

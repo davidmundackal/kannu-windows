@@ -354,9 +354,10 @@ public partial class NotchWindow : Window
 
     private double ExpandedHeight()
     {
-        var content = _model.IsUsageTab
+        var card = _model.HasSecurityAlert && !_model.IsUsageTab ? 64 : 0;
+        var content = card + (_model.IsUsageTab
             ? (_model.UsageBars.Count == 0 ? EmptyHeight + 18 : _model.UsageBars.Count * UsageBar.Height)
-            : _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight;
+            : _model.Sessions.Count == 0 ? EmptyHeight : _model.Sessions.Count * RowHeight);
         // Leave room inside the window for the open motion's overshoot and the pill's offset.
         return Math.Min(ExpandedChrome + content, Height - 12 - PillTopOffset);
     }
@@ -478,6 +479,16 @@ public partial class NotchWindow : Window
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke();
+
+    /// <summary>The pinned security card's Details: Settings › Security.</summary>
+    public event Action? SecurityRequested;
+
+    private void SecurityDetails_Click(object sender, RoutedEventArgs e) => SecurityRequested?.Invoke();
+
+    private void SecurityAcknowledge_Click(object sender, RoutedEventArgs e)
+    {
+        if (_model.SecurityAlert is { } group) SecurityMonitor.Shared?.Acknowledge(group);
+    }
 
     /// <summary>Click-through (D2): the agent's window comes forward; the exact tab is not chosen.</summary>
     private void Row_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)

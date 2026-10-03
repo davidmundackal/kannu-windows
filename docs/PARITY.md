@@ -51,7 +51,7 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 | Raise the window whose title matches the project (Accessibility) | Kannu | **Doable** | `EnumWindows` + title match; no permission needed on Windows |
 | **Mobile push**: ntfy / Pushover / webhook, test button, 2 s debounce | Kannu | **Done** | Settings › Notifications. Same texts, priorities and URL policy as macOS; topic, keys and webhook URL in Windows Credential Manager |
 | "Still waiting on you" reminder push | Kannu | **Done** | `WaitReminder` ported with its rules (one per wait, overdue-at-start not sent); 5/10/15/30 min, off by default |
-| Pushes for security findings and usage limits | Kannu | **Partial** | Usage limits done; security findings come with §4 |
+| Pushes for security findings and usage limits | Kannu | **Done** | High findings (and medium, if chosen) once per finding; usage limits once per window |
 | Local desktop notifications (toasts) | Windows only | **Done (D3)** | Off by default. Yellow and red, and the reminder, through the tray icon's notification |
 | **Notch skins** (image clipped to the notch, scrim) | Kannu | **Done** | Settings › Notch › Notch skin: PNG/JPG/BMP/GIF (first frame) copied to `%APPDATA%\Kannu\skins`, `ImageBrush` UniformToFill, "Darken the picture" scrim 0–90 %. SVG not supported |
 | Tray eye (menu-bar eye) | Kannu | **Done** (Restart doable) | Eye tinted by the light; left click opens the notch with its tabs (closes after 3 s unless the pointer is on it); menu: Open Kannu, Settings…, Agent hooks, status folder, updates, Quit |
@@ -71,16 +71,16 @@ features); *Atoll* marks features inherited from the Atoll / Boring.Notch fork.
 ## 4. Agent Security
 | Feature | Origin | Windows | How on Windows / why |
 |---|---|---|---|
-| Hook checks: hidden Unicode (ASCII smuggling), optional warning to the agent | Kannu | **Doable** | Port into `kannu-hook.exe`; the same marker files switch it on and off |
-| Hook checks: secrets in prompts and tool inputs (fingerprint only) | Kannu | **Doable** | Same patterns |
-| Hook checks: sensitive files read or changed | Kannu | **Doable, needs a Windows list** | The macOS list (Keychains, `security`, LaunchAgents, `launchctl`) must become: `%APPDATA%\Microsoft\Credentials` and `Protect`, `cmdkey`, Credential Manager, Run/RunOnce keys, Startup folder, `schtasks`, PowerShell profile and history, browser profiles, `.ssh`, cloud CLI configs. Drafted by an agent, reviewed by a maintainer |
-| Permission-bypass detection (`--dangerously-skip-permissions`, Codex `never`) | Kannu | **Doable** | |
-| **Agent policy**: block ssh or anything on Claude Code and Cursor; edit, import or draft rules; open in your editor | Kannu | **Doable** | Hook-side deny in C#, using the same `~/.kannu/agent-policy.json` as macOS. A policy written on one platform works on the other |
-| Security findings: one row per problem, acknowledge for a project or everywhere, snooze, reveal, copy for agent | Kannu | **Doable** | Big UI piece. Needs Settings (§5). Explorer `/select,` replaces Finder reveal |
-| Shield cue in the closed notch | Kannu | **Doable** | |
-| New-MCP-server watch | Kannu | **Doable** | Windows config paths (`%APPDATA%\Claude\claude_desktop_config.json`, `%APPDATA%\Code\User\…`, `~/.claude.json`, …) |
-| **ADR Discovery** (Uber ADR, run by Kannu daily or on MCP change) | Kannu | **Decide (D5)** | ADR is Python, installed with `uv`. Whether ADR Discovery supports Windows is unverified |
-| **ADR Detection** (LLM analysis of one finished chat; claude-sonnet-5, optional gpt-4o triage) | Kannu | **Decide (D5)** | Same question. It also sends a transcript to Anthropic, so it is opt-in |
+| Hook checks: hidden Unicode (ASCII smuggling), optional warning to the agent | Kannu | **Done** | Ported into `kannu-hook.exe` with macOS's code-point ranges, flag and RTL-line exemptions, decoding and note outputs; the same marker files switch it |
+| Hook checks: secrets in prompts and tool inputs (fingerprint only) | Kannu | **Done** | Same patterns, placeholders, boundary and plausibility rules; only kind, prefix, length and a 12-hex fingerprint are written |
+| Hook checks: sensitive files read or changed | Kannu | **Done, Windows list** | Credential stores (`%APPDATA%\Microsoft\Credentials`, `Protect`, `Crypto`), `cmdkey`/`vaultcmd`, Run/RunOnce keys, Startup folders, `schtasks`/`Register-ScheduledTask`/`sc create`, PowerShell profiles and history, browser profiles, `.ssh`, cloud and agent credentials, `.env`. Commands parsed for bash, PowerShell and cmd, including `cmd /c`, `powershell -Command` and `-EncodedCommand`. Needs review by a maintainer |
+| Permission-bypass detection (`--dangerously-skip-permissions`, Codex `never`) | Kannu | **Done** | A high finding while the chat runs |
+| **Agent policy**: block ssh or anything on Claude Code and Cursor; edit, import or draft rules; open in your editor | Kannu | **Done** (no in-app editor) | Same `~/.kannu/agent-policy.json` and strictness as macOS; refuses on Claude Code and Cursor when "Refuse calls that match" is on. Settings shows the file's state and opens its folder; docs/SECURITY.md has the format |
+| Security findings: one row per problem, acknowledge for a project or everywhere, snooze, reveal, copy for agent | Kannu | **Done** (acknowledge is everywhere only) | Settings › Security: grouped cards, Details, Acknowledge (back if it gets worse), Snooze 24 h, Show in folder, Copy for agent. Kept in `%APPDATA%\Kannu\security.json`, 50 per kind |
+| Shield cue in the closed notch | Kannu | **Done** | A shield beside the lights, never a light colour; the open notch pins the top high finding with Details and OK |
+| New-MCP-server watch | Kannu | **Done** | Every minute, Windows config paths plus session project folders; first look learns. Medium finding per new server |
+| **ADR Discovery** (Uber ADR, run by Kannu daily or on MCP change) | Kannu | **Not ported (D5)** | No verified Windows build to run |
+| **ADR Detection** (LLM analysis of one finished chat; claude-sonnet-5, optional gpt-4o triage) | Kannu | **Not ported (D5)** | Same; it would also send a transcript off the PC |
 
 ## 5. App shell
 | Feature | Origin | Windows | How on Windows / why |

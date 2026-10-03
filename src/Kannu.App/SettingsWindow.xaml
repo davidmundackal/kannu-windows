@@ -64,6 +64,12 @@
                         <TextBlock Text="Agents" FontSize="14" VerticalAlignment="Center" />
                     </StackPanel>
                 </ListBoxItem>
+                <ListBoxItem Tag="Security">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xEA18;" Margin="0,0,14,0" />
+                        <TextBlock Text="Security" FontSize="14" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ListBoxItem>
                 <ListBoxItem Tag="Notifications">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xEA8F;" Margin="0,0,14,0" />
@@ -371,6 +377,163 @@
                             </StackPanel>
                             <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Open" Click="OpenStatusFolder_Click" />
                         </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Security -->
+                <StackPanel x:Name="SecurityPage" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource Kannu.PageTitle}" Text="Security" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Margin="0,-8,0,16"
+                               Text="Kannu's hook checks what agents read, write and are told, on this PC only. A finding never changes the traffic light: a shield appears on the notch instead. Secrets are never kept: only their kind, length and a fingerprint." />
+
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Findings" Margin="0" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource Kannu.Button}" Content="Show hidden again" Margin="0,0,8,0" Click="Unhide_Click" />
+                            <Button Style="{StaticResource Kannu.Button}" Content="Scan now" Click="ScanNow_Click" />
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel x:Name="FindingRows" />
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Checks" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8F3;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Hidden text" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Invisible or reordered characters in prompts, tool results and replies: a way to slip instructions past you." />
+                                </StackPanel>
+                                <CheckBox x:Name="HiddenTextToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8BD;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Tell the agent about hidden text" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Also add a factual note for the agent when hidden text is found (Claude Code, Cursor, Codex, VS Code). Off by default." />
+                                </StackPanel>
+                                <CheckBox x:Name="WarnAgentToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8D7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Secrets" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="API keys, tokens and private keys in your prompts or in what the agent hands a tool." />
+                                </StackPanel>
+                                <CheckBox x:Name="SecretsToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8B7;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Sensitive files" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Keys, credentials, browser data, shell history, .env files, startup and agent settings an agent read or changed." />
+                                </StackPanel>
+                                <CheckBox x:Name="PathsToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE968;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="New MCP servers" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="A server added to an agent's MCP settings since Kannu last looked. Kannu learns what is there the first time." />
+                                </StackPanel>
+                                <CheckBox x:Name="McpToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Agent policy" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE72E;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Policy file" />
+                                    <TextBlock x:Name="PolicyDescription" Style="{StaticResource Kannu.RowDescription}" Text="PolicyStatus" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Style="{StaticResource Kannu.Button}" Content="Open folder" Click="OpenPolicyFolder_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE8F8;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Refuse calls that match" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Claude Code and Cursor are told no before the call runs. Other agents' matches are reported only. Off by default: every match is reported." />
+                                </StackPanel>
+                                <CheckBox x:Name="EnforceToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Kannu.SectionTitle}" Text="Notify me" />
+                    <Border Style="{StaticResource Kannu.Card}">
+                        <StackPanel>
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xEA18;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="High findings" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="A Windows or phone notification, once per finding, through Settings › Notifications." />
+                                </StackPanel>
+                                <CheckBox x:Name="PushHighToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                            <Border Style="{StaticResource Kannu.Divider}" />
+                            <Grid Style="{StaticResource RowGrid}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE946;" Margin="0,0,16,0" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="Medium findings" />
+                                    <TextBlock Style="{StaticResource Kannu.RowDescription}" Text="Off by default." />
+                                </StackPanel>
+                                <CheckBox x:Name="PushMediumToggle" Grid.Column="2" Style="{StaticResource Kannu.ToggleSwitch}" Click="SecurityToggle_Click" />
+                            </Grid>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
 

@@ -115,6 +115,20 @@
                     </TextBlock.Style>
                 </TextBlock>
                 <!-- The traffic light: Classic shows all three (unlit ones dimmed), Minimal only the lit one. -->
+                <!-- A security finding: a shield, never a traffic-light colour (macOS SecurityShieldGlyph). -->
+                <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="#E6FFFFFF"
+                           VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Security finding">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSecurityAlert}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <StackPanel x:Name="Lights" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse x:Name="ActiveLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
                         <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
@@ -195,6 +209,41 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
+                    <Border CornerRadius="10" Background="#24FFFFFF" Padding="10,8" Margin="0,0,0,6" Height="58">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSecurityAlert}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="#FFF59E0B"
+                                       VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SecurityAlertTitle}" Foreground="#FFFFFFFF" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding SecurityAlertDetail}" Foreground="#B3FFFFFF" FontSize="11" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <Button Style="{StaticResource HeaderButton}" Width="Auto" Padding="8,0" Margin="0,0,4,0" Click="SecurityDetails_Click"
+                                        ToolTip="Open Settings › Security">
+                                    <TextBlock Text="Details" Foreground="#E6FFFFFF" FontSize="11" Margin="8,0" />
+                                </Button>
+                                <Button Style="{StaticResource HeaderButton}" Width="Auto" Click="SecurityAcknowledge_Click"
+                                        ToolTip="Acknowledge: hide it until it gets worse">
+                                    <TextBlock Text="OK" Foreground="#E6FFFFFF" FontSize="11" Margin="8,0" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                     <ItemsControl Focusable="False" ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource RowTemplate}" />
                     <TextBlock Height="30" Text="Start an agent to see it here." Foreground="#99FFFFFF" FontSize="12">
                         <TextBlock.Style>
