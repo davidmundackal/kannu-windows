@@ -1,0 +1,147 @@
+{
+  "hooks" : {
+    "Notification" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" stopped Notification completed",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ],
+        "matcher" : "agent_completed"
+      },
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" awaiting_input Notification needs_input",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ],
+        "matcher" : "permission_prompt|idle_prompt|agent_needs_input"
+      }
+    ],
+    "PermissionRequest" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" awaiting_input PermissionRequest",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" thinking PostToolUse",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" thinking PostToolUseFailure",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "PreToolUse" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" awaiting_input PreToolUse gated",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ],
+        "matcher" : "ExitPlanMode|AskUserQuestion"
+      },
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" executing PreToolUse",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "SessionEnd" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" session_end SessionEnd",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "SessionStart" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" idle SessionStart",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "Stop" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" stopped Stop",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "StopFailure" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" stopped StopFailure",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit" : [
+      {
+        "hooks" : [
+          {
+            "async" : true,
+            "command" : "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/kannu-cloud-relay.sh\" thinking UserPromptSubmit",
+            "timeout" : 10,
+            "type" : "command"
+          }
+        ]
+      }
+    ]
+  }
+}
