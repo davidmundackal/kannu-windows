@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test tests/Kannu.Core.Tests -c Release
+
+      - name: Publish (hook as Native AOT, app self-contained)
+        shell: pwsh
+        # With -Version, as release.yml calls it, so the versioned path is exercised on every PR.
+        run: ./scripts/publish.ps1 -Runtime win-x64 -Output out/win-x64 -Version 0.0.1-ci
+
+      - name: Smoke-test the published hook
+        shell: pwsh
+        run: |
+          $env:KANNU_STATUS_DIR = Join-Path $env:RUNNER_TEMP 'kannu-status'
+          $line = '{"session_id":"ci"}' | ./out/win-x64/kannu-hook.exe stopped claude Stop
+          if ($LASTEXITCODE -ne 0) { throw "hook exited $LASTEXITCODE" }
+          if ($line -ne '{"permission":"allow","continue":true}') { throw "unexpected stdout: $line" }
+          $status = Get-Content (Join-Path $env:KANNU_STATUS_DIR 'claude-ci.json') | ConvertFrom-Json
+          if ($status.state -ne 'stopped') { throw "expected stopped, got $($status.state)" }
+
+      # The installer is built on every PR too, so a packaging break fails here rather than on a tag.
+      - name: Build the installer (unsigned)
+        shell: pwsh
+        run: |
+          $velopack = ([xml](Get-Content src/Kannu.App/Kannu.App.csproj)).Project.ItemGroup.PackageReference |
+            Where-Object { $_.Include -eq 'Velopack' } | ForEach-Object { $_.Version }
+          dotnet tool install -g vpk --version $velopack
+          $env:PATH += ";$env:USERPROFILE\.dotnet\tools"
+          ./scripts/build-installer.ps1 -SkipPublish -Version 0.0.1-ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not (Test-Path Releases/Kannu-win-Setup.exe)) { throw 'Kannu-win-Setup.exe was not built.' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kannu-win-x64
+          path: out/win-x64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kannu-installer
+          path: Releases/Kannu-win-Setup.exe

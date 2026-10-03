@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D1055E5E-CCC2-47B2-8FE3-CD741D3B9FE3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kannu.Core", "src\Kannu.Core\Kannu.Core.csproj", "{5CBA547D-D2DA-4050-8E2B-6E71618E68AF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kannu.Hook", "src\Kannu.Hook\Kannu.Hook.csproj", "{61CE1F70-8E59-412B-A8BC-7A2FAFB11803}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{D2921321-8AB6-42E7-8D25-B10CB056D610}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kannu.Core.Tests", "tests\Kannu.Core.Tests\Kannu.Core.Tests.csproj", "{3B980986-03FD-4628-80ED-3DD102759E82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kannu.App", "src\Kannu.App\Kannu.App.csproj", "{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kannu.Detection", "src\Kannu.Detection\Kannu.Detection.csproj", "{6E3C66B3-83B0-4F0A-B382-0F1811A434AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5CBA547D-D2DA-4050-8E2B-6E71618E68AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5CBA547D-D2DA-4050-8E2B-6E71618E68AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5CBA547D-D2DA-4050-8E2B-6E71618E68AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5CBA547D-D2DA-4050-8E2B-6E71618E68AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61CE1F70-8E59-412B-A8BC-7A2FAFB11803}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61CE1F70-8E59-412B-A8BC-7A2FAFB11803}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61CE1F70-8E59-412B-A8BC-7A2FAFB11803}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61CE1F70-8E59-412B-A8BC-7A2FAFB11803}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B980986-03FD-4628-80ED-3DD102759E82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B980986-03FD-4628-80ED-3DD102759E82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B980986-03FD-4628-80ED-3DD102759E82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B980986-03FD-4628-80ED-3DD102759E82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E3C66B3-83B0-4F0A-B382-0F1811A434AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E3C66B3-83B0-4F0A-B382-0F1811A434AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E3C66B3-83B0-4F0A-B382-0F1811A434AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E3C66B3-83B0-4F0A-B382-0F1811A434AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5CBA547D-D2DA-4050-8E2B-6E71618E68AF} = {D1055E5E-CCC2-47B2-8FE3-CD741D3B9FE3}
+		{61CE1F70-8E59-412B-A8BC-7A2FAFB11803} = {D1055E5E-CCC2-47B2-8FE3-CD741D3B9FE3}
+		{3B980986-03FD-4628-80ED-3DD102759E82} = {D2921321-8AB6-42E7-8D25-B10CB056D610}
+		{A6F9F8E9-CDD0-42AF-BA60-90D1ABD5E5E9} = {D1055E5E-CCC2-47B2-8FE3-CD741D3B9FE3}
+		{6E3C66B3-83B0-4F0A-B382-0F1811A434AA} = {D1055E5E-CCC2-47B2-8FE3-CD741D3B9FE3}
+	EndGlobalSection
+EndGlobal

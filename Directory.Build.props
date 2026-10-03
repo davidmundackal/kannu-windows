@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <!-- Pinned: newer SDKs change overload resolution under "latest" (array.Reverse() bound to the in-place span overload). -->
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Company>Kannu Contributors</Company>
+    <Product>Kannu for Windows</Product>
+    <Copyright>Copyright (C) 2026 Kannu Contributors. GPL-3.0-or-later.</Copyright>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,81 @@
+<Window x:Class="Kannu.App.WelcomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Welcome to Kannu"
+        Width="620" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Kannu.WindowBackground}"
+        Foreground="{DynamicResource Kannu.Text}"
+        FontFamily="{StaticResource Kannu.Font.Text}">
+    <StackPanel>
+        <StackPanel Margin="32,28,32,8" Orientation="Horizontal">
+            <TextBlock Style="{StaticResource Kannu.Icon}" Text="&#xE890;" FontSize="28" Margin="0,0,14,0"
+                       Foreground="{DynamicResource Kannu.Accent}" />
+            <StackPanel>
+                <TextBlock FontFamily="{StaticResource Kannu.Font.Display}" FontSize="22" FontWeight="SemiBold" Text="Watch your agents" />
+                <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13"
+                           Text="Kannu shows what your AI coding agents are doing, without switching apps." />
+            </StackPanel>
+        </StackPanel>
+
+        <Border Margin="32,12,32,0" Style="{StaticResource Kannu.Card}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="The traffic light" Margin="0,0,0,10" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Ellipse x:Name="ActiveDot" Width="12" Height="12" Margin="0,0,12,0" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Text="Working: an agent is thinking or running tools." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Ellipse x:Name="AwaitingDot" Width="12" Height="12" Margin="0,0,12,0" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Text="Needs you: an agent is waiting for your answer or approval." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse x:Name="StoppedDot" Width="12" Height="12" Margin="0,0,12,0" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}" FontSize="13" Text="Finished: an agent is done, or stopped." />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Margin="32,12,32,0" Style="{StaticResource Kannu.Card}">
+            <StackPanel>
+                <Grid MinHeight="56" Margin="0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,24,0">
+                        <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="1. Connect your agents" />
+                        <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                   Text="Install Kannu's hook in Claude Code, Cursor, Codex, VS Code and the others you use. Your own settings are kept." />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource Kannu.AccentButton}" Content="Choose agents" VerticalAlignment="Center" Click="Agents_Click" />
+                </Grid>
+                <Border Style="{StaticResource Kannu.Divider}" />
+                <StackPanel Margin="0,8">
+                    <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="2. Find the eye" />
+                    <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                               Text="The notch stays hidden until an agent's light changes. Click the Kannu eye in the taskbar's notification area to open it any time; if the eye is hidden, drag it out of the ^ menu." />
+                </StackPanel>
+                <Border Style="{StaticResource Kannu.Divider}" />
+                <Grid MinHeight="56" Margin="0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,24,0">
+                        <TextBlock Style="{StaticResource Kannu.RowTitle}" Text="3. Make it yours" />
+                        <TextBlock Style="{StaticResource Kannu.RowDescription}"
+                                   Text="Notch or floating pill, your colours, a phone notification when an agent needs you, keeping the PC awake while agents work." />
+                    </StackPanel>
+                    <Button Grid.Column="1" Style="{StaticResource Kannu.Button}" Content="Open Settings" VerticalAlignment="Center" Click="Settings_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Margin="0,20,0,0" Padding="32,16" Background="{DynamicResource Kannu.Card}"
+                BorderBrush="{DynamicResource Kannu.CardStroke}" BorderThickness="0,1,0,0">
+            <Button Style="{StaticResource Kannu.AccentButton}" Content="Get started" HorizontalAlignment="Right"
+                    IsDefault="True" IsCancel="True" Click="Close_Click" />
+        </Border>
+    </StackPanel>
+</Window>

@@ -1,0 +1,363 @@
+<Window x:Class="Kannu.App.NotchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kannu"
+        Width="460" Height="420"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        Focusable="False" UseLayoutRounding="True" SnapsToDevicePixels="True">
+    <!--
+      The window is sized once to the largest the notch can grow and never moves or resizes; only the
+      Pill inside it animates. Everything outside the Pill is fully transparent, and a layered window
+      passes clicks through fully transparent pixels, so the spare area never blocks the desktop.
+    -->
+    <Window.Resources>
+        <!-- A card: light, agent icon, chat title, and below it agent · state · run time · tools · tokens. -->
+        <DataTemplate x:Key="RowTemplate">
+            <!-- Click-through: a click brings the agent's window forward. Transparent so the whole row is hit. -->
+            <Grid Height="40" Background="Transparent" Cursor="Hand" ToolTip="Show this agent's window"
+                  MouseLeftButtonUp="Row_MouseLeftButtonUp">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Ellipse Width="9" Height="9" VerticalAlignment="Center" Fill="{Binding Brush}" />
+                <Image Grid.Column="1" Width="20" Height="20" Margin="8,0,0,0" VerticalAlignment="Center"
+                       Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality" />
+                <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" Foreground="#FFFFFFFF" FontSize="13" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Detail}" Foreground="#99FFFFFF" FontSize="11" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+        <!-- Open-notch header buttons: icon-only 26 px circles, as on macOS (TabButton.swift). -->
+        <Style x:Key="TabButton" TargetType="RadioButton">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Face" CornerRadius="13" Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                            <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13"
+                                       Foreground="#E6FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#1AFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#26FFFFFF" />
+                                <Setter TargetName="Face" Property="BorderBrush" Value="#2EFFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HeaderButton" TargetType="Button">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Face" CornerRadius="13" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#1AFFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Face" Property="Background" Value="#26FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!--
+      The pill slides out of view above the top edge while the notch is hidden (PillShift), and is then
+      neither visible nor hit-testable, so it never blocks a click.
+    -->
+    <Border x:Name="Pill"
+            HorizontalAlignment="Center" VerticalAlignment="Top"
+            Width="200" Height="32"
+            CornerRadius="0,0,14,14"
+            Background="#F2121214" BorderBrush="#22FFFFFF" BorderThickness="1,0,1,1"
+            ClipToBounds="True" Opacity="0" IsHitTestVisible="False"
+            MouseEnter="Pill_MouseEnter" MouseLeave="Pill_MouseLeave">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="PillShift" Y="-60" />
+        </Border.RenderTransform>
+        <Grid>
+            <!-- Darkens a notch skin so the lights and text stay readable. -->
+            <Border x:Name="SkinScrim" Background="#FF000000" Opacity="0" IsHitTestVisible="False" />
+            <!-- Closed: Kannu's eye while nothing runs, else one dot per session and a summary. -->
+            <StackPanel x:Name="CollapsedRow" Height="32" VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Text="&#xE890;" FontSize="14" Foreground="#D9FFFFFF"
+                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <!-- The traffic light: Classic shows all three (unlit ones dimmed), Minimal only the lit one. -->
+                <!-- Screen capture (best effort): a red recording dot. -->
+                <Ellipse Width="7" Height="7" Fill="#FFEF4444" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="{Binding CaptureText}">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsCapturing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <!-- A HUD (brightness): a glyph and a bar, in place of the lights for a moment. -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="{Binding HudGlyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="#E6FFFFFF"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Border Width="70" Height="5" CornerRadius="2.5" Background="#33FFFFFF" ClipToBounds="True" VerticalAlignment="Center">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{Binding HudFilled}" />
+                                <ColumnDefinition Width="{Binding HudEmpty}" />
+                            </Grid.ColumnDefinitions>
+                            <Border CornerRadius="2.5" Background="#FFFFFFFF" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <!-- A security finding: a shield, never a traffic-light colour (macOS SecurityShieldGlyph). -->
+                <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="#E6FFFFFF"
+                           VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="Security finding">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSecurityAlert}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <StackPanel x:Name="Lights" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="ActiveLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="AwaitingLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="StoppedLight" Width="8" Height="8" Margin="3,0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <!-- Later trigger wins: a HUD takes the lights' place for a moment. -->
+                                <DataTrigger Binding="{Binding HasHud}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                </StackPanel>
+                <TextBlock Margin="6,0,0,0" MaxWidth="150" VerticalAlignment="Center"
+                           Text="{Binding Summary}" Foreground="#D9FFFFFF" FontSize="12"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <!-- Open: tabs and the gear, then the selected tab's content. -->
+            <StackPanel x:Name="ExpandedContent" Margin="16,10,16,12" VerticalAlignment="Top"
+                        Opacity="0" IsHitTestVisible="False">
+                <Grid Height="30" Margin="0,0,0,6">
+                    <ItemsControl ItemsSource="{Binding Tabs}" Focusable="False" HorizontalAlignment="Left">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Style="{StaticResource TabButton}" GroupName="NotchTabs" ToolTip="{Binding Label}"
+                                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                             MouseEnter="Tab_MouseEnter" MouseLeave="Tab_MouseLeave" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding SelectedTab.Label}" Foreground="#D9FFFFFF" FontSize="12" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Button Style="{StaticResource HeaderButton}" HorizontalAlignment="Right" Margin="0,0,32,0"
+                            Click="Caffeinate_Click">
+                        <Button.ToolTip>
+                            <ToolTip Content="Keep the PC awake" />
+                        </Button.ToolTip>
+                        <TextBlock Text="&#xE706;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="#80FFFFFF" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCaffeinated}" Value="True">
+                                            <Setter Property="Foreground" Value="#FFF59E0B" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Button>
+                    <Button Style="{StaticResource HeaderButton}" HorizontalAlignment="Right" ToolTip="Settings"
+                            Click="Settings_Click">
+                        <TextBlock Text="&#xE713;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="#E6FFFFFF" />
+                    </Button>
+                </Grid>
+
+                <StackPanel x:Name="AgentsTab">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUsageTab}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Border CornerRadius="10" Background="#24FFFFFF" Padding="10,8" Margin="0,0,0,6" Height="58">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSecurityAlert}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="#FFF59E0B"
+                                       VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SecurityAlertTitle}" Foreground="#FFFFFFFF" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding SecurityAlertDetail}" Foreground="#B3FFFFFF" FontSize="11" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <Button Style="{StaticResource HeaderButton}" Width="Auto" Padding="8,0" Margin="0,0,4,0" Click="SecurityDetails_Click"
+                                        ToolTip="Open Settings › Security">
+                                    <TextBlock Text="Details" Foreground="#E6FFFFFF" FontSize="11" Margin="8,0" />
+                                </Button>
+                                <Button Style="{StaticResource HeaderButton}" Width="Auto" Click="SecurityAcknowledge_Click"
+                                        ToolTip="Acknowledge: hide it until it gets worse">
+                                    <TextBlock Text="OK" Foreground="#E6FFFFFF" FontSize="11" Margin="8,0" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <ItemsControl Focusable="False" ItemsSource="{Binding Sessions}" ItemTemplate="{StaticResource RowTemplate}" />
+                    <TextBlock Height="30" Text="Start an agent to see it here." Foreground="#99FFFFFF" FontSize="12">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasSessions}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Usage: Claude Code's plan limits, read locally. -->
+                <StackPanel x:Name="UsageTab" Visibility="Collapsed">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsUsageTab}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <ItemsControl Focusable="False" ItemsSource="{Binding UsageBars}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Height="54">
+                                    <Grid>
+                                        <TextBlock Text="{Binding Title}" Foreground="#FFFFFFFF" FontSize="12" />
+                                        <TextBlock Text="{Binding Reset}" Foreground="#80FFFFFF" FontSize="11" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding PercentText}" Foreground="#FFFFFFFF" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <Border Height="6" CornerRadius="3" Margin="0,5,0,3" Background="#26FFFFFF" ClipToBounds="True">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding Filled}" />
+                                                <ColumnDefinition Width="{Binding Empty}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="3" Background="{Binding Brush}" />
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock Text="{Binding Caption}" Foreground="{Binding CaptionBrush}" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="{Binding OtherUsage}" Foreground="#B3FFFFFF" FontSize="11" Margin="0,0,0,6" TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOtherUsage}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding UsageHint}" Foreground="#99FFFFFF" FontSize="12" TextWrapping="Wrap" MinHeight="30">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasUsage}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
